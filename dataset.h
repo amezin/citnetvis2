@@ -55,7 +55,6 @@ private:
     void queryPublication(const QString &);
 
     QSet<SparqlQuery*> inProgress;
-    int totalQueries;
 
     QUrl endpoint;
     QString hasDateResolved, hasTitleResolved, referenceResolved;
@@ -69,6 +68,7 @@ private:
     QStringList publicationQueue;
 
     QHash<Identifier, Publication> currentPublications;
+    QSet<Identifier> dataReceivedFor;
 };
 
 #endif // DATASET_H

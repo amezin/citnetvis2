@@ -1,12 +1,17 @@
 #include "scene.h"
 
+#include <limits>
+
 #include <QDebug>
 #include <QMutableSetIterator>
 #include <QMutableHashIterator>
 #include <QMutableMapIterator>
 #include <QMutableLinkedListIterator>
 #include <QVector>
+#include <QFontMetricsF>
+
 #include <QtAlgorithms>
+#include <qmath.h>
 
 Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 {
@@ -14,9 +19,21 @@ Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 }
 
 Scene::Scene(QObject *parent) :
-    QGraphicsScene(parent), layerWidth(100), spacing(5), radiusBase(5),
-    radiusK(5)
+    QGraphicsScene(parent)
 {
+    parameters[RadiusBase] = 5;
+    parameters[RadiusK] = 5;
+    parameters[Spacing] = 7;
+    parameters[MinLayerWidth] = 75;
+    parameters[MaxEdgeSlope] = 3;
+    parameters[EdgeThickness] = 2;
+
+    parameters[EdgeSaturation] = 0.5;
+    parameters[EdgeValue] = 1;
+    parameters[TextSaturation] = 1;
+    parameters[TextValue] = 0.5;
+
+    parameters[FontSize] = 6;
 }
 
 void Scene::setDataset(const Dataset &ds)
@@ -37,9 +54,11 @@ void Scene::setDataset(const Dataset &ds)
     clearAdjacencyData();
 
     foreach (auto i, publications) {
-        addEdge(i, i);
-
         foreach (auto j, i.references) {
+            if (i.iri() == j) {
+                continue;
+            }
+
             auto k = publications.find(j);
             if (k == publications.end()) {
                 continue;
@@ -79,52 +98,277 @@ void Scene::setDataset(const Dataset &ds)
     }
     qDebug() << "Nodes:" << totalNodes << "Edges:" << totalEdges;
 
-    reLayout();
+    absoluteCoords();
 }
 
-void Scene::reLayout()
+qreal Scene::radius(const PublicationInfo &p) const
+{
+    return qSqrt(p.reverseDeg) * parameters[RadiusK]
+            + parameters[RadiusBase];
+}
+
+qreal Scene::radius(const VNodeRef &p) const
+{
+    if (!p->publication) {
+        return parameters[EdgeThickness] / 2;
+    }
+    Q_ASSERT(publicationInfo.contains(p->publication));
+    return radius(publicationInfo[p->publication]);
+}
+
+qreal Scene::minLayerWidth(const VNodeRef &p, bool prev) const
+{
+    qreal w = p->size;
+    for (auto n : p->neighbors) {
+        if ((n->currentLayer < p->currentLayer) == prev) {
+            w = qMax(w, qAbs(p->y - n->y) / parameters[MaxEdgeSlope]);
+        }
+    }
+    return w;
+}
+
+static void computeForces(Scene::Layer &l, bool before, bool after)
+{
+    for (auto n : l) {
+        int cnt = 0;
+        qreal y = 0;
+        for (auto r : n->neighbors) {
+            if (((r->currentLayer < n->currentLayer) == before) ||
+                    ((r->currentLayer > n->currentLayer) == after))
+            {
+                y += r->y;
+                cnt++;
+            }
+        }
+        if (cnt) {
+            n->y = y / cnt;
+        }
+    }
+}
+
+bool Scene::applyForces(Scene::Layer &l)
+{
+    const auto eps = parameters[Spacing] / 2;
+
+    auto i = l.begin();
+    if (i == l.end()) {
+        return false;
+    }
+
+    bool problem = false;
+    for (;;) {
+        auto bottom = (*i)->y + (*i)->size / 2;
+        auto prev = i;
+        if (++i == l.end()) break;
+        auto top = (*i)->y - (*i)->size / 2;
+        if (bottom > top) {
+            (*i)->y = (top + bottom + (*i)->size) / 2 + eps;
+            (*prev)->y = (top + bottom - (*prev)->size) / 2 - eps;
+            problem = true;
+        }
+    }
+    return problem;
+}
+
+void Scene::absoluteCoords()
+{
+    for (auto l : layers) {
+        qreal y = 0;
+        for (auto n : l) {
+            n->y = y;
+            n->size = 2 * radius(n) + parameters[Spacing];
+            y += n->size;
+        }
+    }
+
+    for (auto i : layers) {
+        computeForces(i, true, false);
+        while (applyForces(i));
+    }
+
+    for (auto i = layers.end(); i != layers.begin();) {
+        --i;
+        computeForces(*i, false, true);
+        while (applyForces(*i));
+    }
+
+    for (int iter = 0; iter < 9; iter++) {
+        for (auto l : layers) {
+            computeForces(l, true, true);
+        }
+        for (auto l : layers) {
+            while (applyForces(l));
+        }
+    }
+
+    qreal x = 0;
+    for (auto l = layers.begin(); l != layers.end(); l++) {
+        for (auto n : *l) {
+            n->x = x;
+        }
+
+        auto width = parameters[MinLayerWidth];
+        for (auto n : *l) {
+            width = qMax(width, minLayerWidth(n, false));
+        }
+        auto next = l;
+        if (++next != layers.end()) {
+            for (auto n : *next) {
+                width = qMax(width, minLayerWidth(n, true));
+            }
+        }
+
+        x += width;
+    }
+
+    build();
+}
+
+void Scene::build()
 {
     clear();
 
-    qreal x = 0;
-    foreach (auto l, layers) {
-        qreal y = 0;
-        qreal maxR = 0;
-
-        foreach (auto i, l) {
-            qreal r = 0;
-            if (i->publication) {
-                Q_ASSERT(publicationInfo.contains(i->publication));
-                r = publicationInfo[i->publication].reverseDeg
-                        * radiusK + radiusBase;
+    for (auto l : layers) {
+        for (auto n : l) {
+            if (n->publication) {
+                auto r = radius(n);
+                addEllipse(n->x - r, n->y - r, r * 2, r * 2,
+                           Qt::NoPen, n->color);
             }
-            y += r * 2;
-
-            i->x = x;
-            i->y = y;
-
-            if (i->publication) {
-                QBrush brush(publicationInfo[i->publication].color);
-                addEllipse(x - r, y - r, r * 2, r * 2, Qt::NoPen, brush);
-            }
-
-            foreach (auto j, i->neighbors) {
-                if (j->currentLayer < i->currentLayer) {
-                    QColor color = i->edgeColors[j];
-                    color.setAlphaF(0.5);
-
-                    QPen pen(color);
-                    pen.setWidthF(1.5);
-                    addLine(j->x, j->y, i->x, i->y, pen)->setZValue(-1);
+            for (auto r : n->neighbors) {
+                if (n->currentLayer > r->currentLayer) {
+                    continue;
                 }
+                QColor edgeColor = n->edgeColors[r];
+                edgeColor.setHsvF(edgeColor.hueF(), parameters[EdgeSaturation],
+                                  parameters[EdgeValue]);
+                QPen edgePen(edgeColor, parameters[EdgeThickness]);
+                auto line = addLine(n->x, n->y, r->x, r->y, edgePen);
+                line->setZValue(-1);
             }
-
-            y += r * 2 + spacing;
-            maxR = qMax(r, maxR);
         }
-
-        x += qMax(layerWidth, maxR * 2);
     }
+
+    placeLabels();
+}
+
+qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)
+{
+    QRectF node = nodeRects[n];
+
+    rect.moveTopLeft(node.bottomRight());
+    auto bestRect = rect;
+    auto bestResult = tryPlaceLabel(rect);
+
+    rect.moveBottomRight(node.topLeft());
+    auto result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    rect.moveBottomLeft(node.topRight());
+    result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    rect.moveTopRight(node.bottomLeft());
+    result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    rect.moveCenter(node.center());
+    rect.moveTop(node.bottom());
+    result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    rect.moveCenter(node.center());
+    rect.moveBottom(node.top());
+    result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    rect.moveCenter(node.center());
+    rect.moveRight(node.left());
+    result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    rect.moveCenter(node.center());
+    rect.moveLeft(node.right());
+    result = tryPlaceLabel(rect);
+    if (result < bestResult) {
+        bestResult = result;
+        bestRect = rect;
+    }
+
+    labelRects.insert(n, bestRect);
+    return bestResult;
+}
+
+void Scene::placeLabels()
+{
+    labelRects.clear();
+    nodeRects.clear();
+    for (auto l : layers) {
+        for (auto n : l) {
+            if (n->publication) {
+                auto off = radius(n) / qSqrt(2);
+                QRectF nodeRect(n->x - off, n->y - off, off * 2, off * 2);
+                nodeRects.insert(n, nodeRect);
+            }
+        }
+    }
+
+    QFont font;
+    font.setPointSizeF(parameters[FontSize]);
+    QFontMetricsF metrics(font);
+
+    for (int iter = 0; iter < 5; iter++) {
+        for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
+            labelRects.remove(n.key());
+            placeLabel(n.key(), metrics.boundingRect(n.key()->label));
+        }
+    }
+
+    for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
+        auto label = addSimpleText(n.key()->label, font);
+        QColor pubColor;
+        pubColor.setHsvF(n.key()->color.hueF(), parameters[TextSaturation],
+                         parameters[TextValue]);
+        label->setBrush(pubColor);
+        label->setZValue(1);
+
+        label->setPos(labelRects[n.key()].topLeft());
+    }
+}
+
+qreal Scene::tryPlaceLabel(const QRectF &rect) const
+{
+    qreal result = 0;
+
+    foreach (auto r, labelRects) {
+        QRectF intersection = rect.intersect(r);
+        result += intersection.size().width() * intersection.size().height();
+    }
+
+    for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
+        QRectF intersection = rect.intersect(n.value());
+        result += intersection.size().width() * intersection.size().height();
+    }
+
+    return result;
 }
 
 int Scene::computeSubLevel(const Identifier &p)
@@ -197,11 +441,6 @@ void Scene::removeCycles()
 {
     QSet<Identifier> visited, inStack;
     for (auto i = inLayerEdges.begin(); i != inLayerEdges.end(); i++) {
-        if (i->isEmpty()) {
-            removeCycles(i.key(), visited, inStack);
-        }
-    }
-    for (auto i = inLayerEdges.begin(); i != inLayerEdges.end(); i++) {
         removeCycles(i.key(), visited, inStack);
     }
 }
@@ -229,7 +468,9 @@ void Scene::findEdgesInsideLayers()
             if (k->date != i.date) {
                 continue;
             }
-            inLayerEdges[i.iri()].insert(j);
+            if (i.iri() != j) {
+                inLayerEdges[i.iri()].insert(j);
+            }
         }
     }
 }
@@ -241,18 +482,33 @@ void Scene::fixPublicationInfoAndDate()
     }
 
     for (auto i = publications.begin(); i != publications.end(); i++) {
-        if (i->date.isEmpty()) {
+        bool changeDate = i->date.isEmpty();
+        if (changeDate) {
             qWarning() << "No date for publication" << i->iri();
-
-            foreach (auto j, i->references) {
-                auto k = publications.find(j);
-                if (k != publications.end()) {
+        }
+        foreach (auto j, i->references) {
+            auto k = publications.find(j);
+            if (k != publications.end()) {
+                if (changeDate) {
                     i->date = qMax(i->date, k->date);
-                    publicationInfo[j].reverseDeg++;
+                }
+                publicationInfo[j].reverseDeg++;
+            }
+        }
+        if (changeDate && !i->date.isEmpty()) {
+            qWarning() << "Set date for" << i->iri() << "to" << i->date;
+        }
+    }
+
+    for (auto i = publications.begin(); i != publications.end(); i++) {
+        foreach (auto j, i->references) {
+            auto k = publications.find(j);
+            if (k != publications.end()) {
+                if (k->date.isEmpty() && !i->date.isEmpty()) {
+                    k->date = i->date;
+                    qWarning() << "Set date for" << i->iri() << "to" << i->date;
                 }
             }
-
-            qDebug() << "Changed date for" << i->iri() << "to" << i->date;
         }
     }
 
@@ -321,9 +577,17 @@ void Scene::addEdge(const Publication &a, const Publication &b)
 
         if (prev) {
             prev->neighbors.insert(*found);
-            prev->edgeColors[*found] = publicationInfo[a.iri()].color;
+            prev->edgeColors[*found] = publicationInfo[b.iri()].color;
             (*found)->neighbors.insert(prev);
-            (*found)->edgeColors[prev] = publicationInfo[a.iri()].color;
+            (*found)->edgeColors[prev] = publicationInfo[b.iri()].color;
+        }
+
+        if (i.key() == aLayer) {
+            (*found)->color = publicationInfo[a.iri()].color;
+            (*found)->label = a.nonEmptyTitle();
+        } else if (i.key() == bLayer) {
+            (*found)->color = publicationInfo[b.iri()].color;
+            (*found)->label = b.nonEmptyTitle();
         }
 
         (*found)->updated = true;
@@ -359,11 +623,6 @@ static int intersectionNumber(const VNodeRef &a, const VNodeRef &b, bool side)
     return result;
 }
 
-static int intersectionNumber(const VNodeRef &a, const VNodeRef &b)
-{
-    return intersectionNumber(a, b, true) + intersectionNumber(a, b, false);
-}
-
 void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
 {
     QMutableLinkedListIterator<VNodeRef> moveable(layer);
@@ -379,17 +638,27 @@ void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
     qStableSort(toInsert.begin(), toInsert.end(), VNodeRef::DegreeGreater());
 
     foreach (auto i, toInsert) {
-        int intersections = 0;
+        int left = 0;
+        int right = 0;
+
         auto j = layer.begin();
         auto best = j;
-        auto bestIntersections = intersections;
+        auto bestLeft = left;
+        auto bestRight = right;
 
         while (j != layer.end()) {
-            intersections -= intersectionNumber(i, *j);
-            intersections += intersectionNumber(*j, i);
+            left -= intersectionNumber(i, *j, false);
+            left += intersectionNumber(*j, i, false);
 
-            if (intersections < bestIntersections) {
-                bestIntersections = intersections;
+            right -= intersectionNumber(i, *j, true);
+            right += intersectionNumber(*j, i, true);
+
+            if ((left + right) < (bestLeft + bestRight) ||
+                    ((left + right) == (bestLeft + bestRight) &&
+                     qMin(left, right) < qMin(bestLeft, bestRight)))
+            {
+                bestLeft = left;
+                bestRight = right;
                 best = j;
                 ++best;
             }

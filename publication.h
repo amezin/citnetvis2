@@ -8,12 +8,16 @@
 class Publication
 {
 public:
-    explicit Publication(const Identifier &iri) : id(iri) { }
+    explicit Publication(const Identifier &iri, bool fromMainQuery = false)
+        : recurse(fromMainQuery), id(iri)
+    {
+    }
 
     const Identifier &iri() const { return id; }
 
     QString date, title;
     QSet<Identifier> references;
+    bool recurse;
 
     const QString &nonEmptyTitle() const {
         return title.isEmpty() ? id.toString() : title;

@@ -81,25 +81,16 @@ QueryEditor::QueryEditor(QWidget *parent)
     textEdit->setPlainText("PREFIX akt:\t<http://www.aktors.org/ontology/portal#>\n"
                            "SELECT DISTINCT ?publication\n"
                            "WHERE {\n"
-                           "\t?parentPublication akt:cites-publication-reference ?publication.\n"
-                           "\t?parentPublication akt:addresses-generic-area-of-interest ?i1.\n"
-                           "\t?publication akt:addresses-generic-area-of-interest ?i2.\n"
+                           "\t?publication akt:addresses-generic-area-of-interest ?i1.\n"
                            "\tFILTER (\n"
-                           "\t\t(?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2> ||\n"
+                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2> ||\n"
                            "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#I.2.8.3> ||\n"
                            "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.0> ||\n"
                            "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.1> ||\n"
                            "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.2> ||\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.5> )\n"
-                           "\t\t&&\n"
-                           "\t\t(?i2 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2> ||\n"
-                           "\t\t?i2 = <http://acm.rkbexplorer.com/ontologies/acm#I.2.8.3> ||\n"
-                           "\t\t?i2 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.0> ||\n"
-                           "\t\t?i2 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.1> ||\n"
-                           "\t\t?i2 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.2> ||\n"
-                           "\t\t?i2 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.5> )\n"
+                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.5>\n"
                            "\t)\n"
-                           "} LIMIT 50");
+                           "} LIMIT 5");
 }
 
 void QueryEditor::load()

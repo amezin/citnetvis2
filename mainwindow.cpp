@@ -9,11 +9,9 @@
 #include <QDebug>
 
 #include "dockbutton.h"
-#include "widgetwithoverlay.h"
-#include "connectionsettingswidget.h"
 #include "persistentwidget.h"
-#include "sparqlqueryinfo.h"
 #include "dataset.h"
+#include "visualisationsettingswidget.h"
 
 static void generateViewMenu(const QObject *widget, QMenu *menu)
 {
@@ -61,9 +59,8 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     setWindowTitle(settings->applicationName());
 
     scene = new Scene(this);
-    view = new QGraphicsView(scene, this);
-    progress = new ProgressOverlay(this);
-    setCentralWidget(new WidgetWithOverlay(view, progress, this));
+    view = new GraphView(scene, this);
+    setCentralWidget(view);
 
     auto toolBar = new QToolBar("Main tool bar", this);
     toolBar->setObjectName("MainToolBar");
@@ -81,14 +78,16 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
 
     view->addActions(toolBar->actions());
     view->setContextMenuPolicy(Qt::ActionsContextMenu);
-    view->setRenderHint(QPainter::Antialiasing);
-    view->setRenderHint(QPainter::TextAntialiasing);
 
     query = new QueryEditor(this);
     addDockWidget(query, "QueryEditor", "Query editor");
 
-    settingsWidget = new ConnectionSettingsWidget(this);
-    addDockWidget(settingsWidget, "ConnectionSettings", "Connection settings");
+    settingsWidget = new DataSettingsWidget(this);
+    addDockWidget(makeScrollable(settingsWidget), "DataSettings",
+                  "SPARQL settings");
+
+    addDockWidget(makeScrollable(new VisualisationSettingsWidget(scene, this)),
+                  "VisSettings", "Visualisation settings");
 
     log = new LogWidget(this);
     auto logDock = addDockWidget(log, "Log", "Errors and warnings");
@@ -118,6 +117,16 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     generateViewMenu(this, viewMenu);
 
     loadPersistentWidgets(this, settings);
+}
+
+QScrollArea *MainWindow::makeScrollable(QWidget *widget)
+{
+    auto area = new QScrollArea(this);
+    area->setWidget(widget);
+    area->setWidgetResizable(true);
+    area->setFrameStyle(QFrame::NoFrame);
+    //widget->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    return area;
 }
 
 void MainWindow::closeEvent(QCloseEvent *e)
@@ -230,15 +239,15 @@ void MainWindow::executeQuery()
                           settingsWidget->referencePredicate(),
                           settingsWidget->dateRegEx(), this);
 
-    connect(dataset, SIGNAL(progress(int,int)), progress,
+    connect(dataset, SIGNAL(progress(int,int)), view->progressOverlay(),
             SLOT(setProgress(int,int)));
-    connect(dataset, SIGNAL(finished()), progress, SLOT(done()));
+    connect(dataset, SIGNAL(finished()), view->progressOverlay(), SLOT(done()));
 
     dataset->connect(stopAction, SIGNAL(triggered()), SLOT(abort()));
     connect(dataset, SIGNAL(finished()), SLOT(showGraph()));
     stopAction->setEnabled(true);
 
-    progress->setProgress(0, 0);
+    view->progressOverlay()->setProgress(0, 0);
 }
 
 void MainWindow::showGraph()

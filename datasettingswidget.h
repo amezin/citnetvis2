@@ -1,15 +1,15 @@
-#ifndef CONNECTIONSETTINGSWIDGET_H
-#define CONNECTIONSETTINGSWIDGET_H
+#ifndef DATASETTINGSWIDGET_H
+#define DATASETTINGSWIDGET_H
 
 #include <QWidget>
 
 #include "persistentfield.h"
 
-class ConnectionSettingsWidget : public QWidget
+class DataSettingsWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ConnectionSettingsWidget(QWidget *parent = 0);
+    explicit DataSettingsWidget(QWidget *parent = 0);
 
     QString endpointUrl() const { return endpointUrlEdit->text(); }
     QString datePredicate() const { return dateEdit->text(); }
@@ -22,4 +22,4 @@ private:
     *dateRegExEdit;
 };
 
-#endif // CONNECTIONSETTINGSWIDGET_H
+#endif // DATASETTINGSWIDGET_H

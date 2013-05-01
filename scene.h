@@ -20,13 +20,31 @@ public:
     
     void setDataset(const Dataset &);
 
+    enum Parameter
+    {
+        RadiusBase,
+        RadiusK,
+        Spacing,
+        MinLayerWidth,
+        MaxEdgeSlope,
+        EdgeThickness,
+        EdgeSaturation,
+        EdgeValue,
+        TextSaturation,
+        TextValue,
+        FontSize,
+
+        NParameters
+    };
+    qreal parameters[NParameters];
+
+    typedef QLinkedList<VNodeRef> Layer;
+
 public slots:
-    void reLayout();
+    void absoluteCoords();
+    void build();
 
 private:
-
-    qreal layerWidth, spacing, radiusBase, radiusK;
-
     typedef QPair<QString, int> LayerId;
 
     void removeCycles(const Identifier &p,
@@ -42,6 +60,10 @@ private:
     void clearAdjacencyData();
     void removeCycles();
     void arrangeToLayers();
+    bool applyForces(Scene::Layer &l);
+    void placeLabels();
+    qreal tryPlaceLabel(const QRectF &) const;
+    qreal placeLabel(const VNodeRef &n, QRectF rect);
 
     struct PublicationInfo
     {
@@ -50,10 +72,12 @@ private:
         QColor color;
         int reverseDeg;
     };
+    qreal radius(const PublicationInfo &) const;
+    qreal radius(const VNodeRef &) const;
+    qreal minLayerWidth(const VNodeRef &p, bool prev) const;
 
     QHash<Identifier, PublicationInfo> publicationInfo;
 
-    typedef QLinkedList<VNodeRef> Layer;
     void sortNodes(Layer &, bool requireSortedNeighbors = true);
 
     QMap<LayerId, Layer> layers;
@@ -62,9 +86,8 @@ private:
     QHash<Identifier, QSet<Identifier> > inLayerEdges;
     QHash<Identifier, int> subLevels;
 
-    QHash<Identifier, QSharedPointer<QGraphicsEllipseItem> > nodeMarkers;
-    QHash<QPair<Identifier, Identifier>, QSharedPointer<QGraphicsLineItem> >
-    edgeLines;
+    QHash<VNodeRef, QRectF> labelRects;
+    QHash<VNodeRef, QRectF> nodeRects;
 };
 
 #endif // SCENE_H

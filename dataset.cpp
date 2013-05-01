@@ -9,7 +9,7 @@ Dataset::Dataset(const QUrl &endpointUrl, const QString &query,
                  const QString &hasDate, const QString &hasTitle,
                  const QString &citesPublicationReference,
                  const QString &dateRegEx, QObject *parent)
-    : QObject(parent), totalQueries(0), endpoint(endpointUrl),
+    : QObject(parent), endpoint(endpointUrl),
       queryInfo(&query), dateSubstring(dateRegEx), errorSet(false)
 {
     if (!endpointUrl.isValid()) setError("Invalid endpoint URL");
@@ -85,13 +85,9 @@ void Dataset::queryFinished()
         runQueries();
     }
 
-    if (!prevFinished) {
-        emitProgress();
-
-        if (isFinished()) {
-            qDebug() << "Nothing more to load";
-            emit finished();
-        }
+    if (!prevFinished && isFinished()) {
+        qDebug() << "Nothing more to load";
+        emit finished();
     }
 }
 
@@ -101,15 +97,13 @@ SparqlQuery *Dataset::createQuery(const QString &text)
     connect(q, SIGNAL(finished()), SLOT(queryFinished()));
     inProgress.insert(q);
 
-    totalQueries++;
     emitProgress();
     return q;
 }
 
 void Dataset::emitProgress()
 {
-    emit progress(totalQueries - inProgress.size(),
-                  totalQueries + !publicationQueue.isEmpty());
+    emit progress(dataReceivedFor.size(), currentPublications.size());
 }
 
 void Dataset::setError(const QString &err)
@@ -135,8 +129,19 @@ void Dataset::addPublications(const SparqlQuery::Results &results)
         }
 
         Identifier id(i.begin().value());
-        currentPublications.insert(id, Publication(id));
-        publicationQueue.append(id.toString());
+        auto found = currentPublications.find(id);
+        if (found == currentPublications.end()) {
+            currentPublications.insert(id, Publication(id, true));
+            publicationQueue.append(id.toString());
+        } else if (!found->recurse) {
+            found->recurse = true;
+            foreach (auto ref, found->references) {
+                if (!currentPublications.contains(ref)) {
+                    currentPublications.insert(ref, Publication(ref));
+                    publicationQueue.append(ref.toString());
+                }
+            }
+        }
     }
 
     qDebug() << publicationQueue.size() << "new publications";
@@ -144,6 +149,7 @@ void Dataset::addPublications(const SparqlQuery::Results &results)
     if (inProgress.size() < SparqlQuery::maxParallelQueries()) {
         runQueries();
     }
+    emitProgress();
 }
 
 void Dataset::runQueries()
@@ -185,6 +191,7 @@ void Dataset::addProperties(const SparqlQuery::Results &results)
         }
 
         Identifier id(i[subject]);
+        dataReceivedFor.insert(id);
         auto j = currentPublications.find(id);
         if (j == currentPublications.end()) {
             setError("Unexpected subject " + id.toString() +
@@ -209,11 +216,22 @@ void Dataset::addProperties(const SparqlQuery::Results &results)
         } else if (!hasTitleResolved.isEmpty() && pred == hasTitleResolved) {
             j->title = i[object];
         } else if (pred == referenceResolved) {
-            j->references.insert(i[object]);
+            Identifier ref(i[object]);
+            j->references.insert(ref);
+
+            if (j->recurse && !currentPublications.contains(ref)) {
+                currentPublications.insert(ref, Publication(ref));
+                publicationQueue.append(ref.toString());
+            }
         } else {
             setError("Unexpected predicate " + pred +
                      ". Wrong generated query or endpoint problems");
             return;
         }
     }
+
+    if (inProgress.size() < SparqlQuery::maxParallelQueries()) {
+        runQueries();
+    }
+    emitProgress();
 }

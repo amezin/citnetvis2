@@ -1,8 +1,8 @@
-#include "connectionsettingswidget.h"
+#include "datasettingswidget.h"
 
 #include <QFormLayout>
 
-ConnectionSettingsWidget::ConnectionSettingsWidget(QWidget *parent) :
+DataSettingsWidget::DataSettingsWidget(QWidget *parent) :
     QWidget(parent)
 {
     auto layout = new QFormLayout(this);

@@ -19,25 +19,24 @@ SOURCES += main.cpp\
     dockbutton.cpp \
     sparqltextedit.cpp \
     progressoverlay.cpp \
-    widgetwithoverlay.cpp \
     sparqlquery.cpp \
-    connectionsettingswidget.cpp \
     dataset.cpp \
     sparqltokenizer.cpp \
     sparqlhighlighter.cpp \
     persistentfield.cpp \
     logwidget.cpp \
     sparqlqueryinfo.cpp \
-    scene.cpp
+    scene.cpp \
+    graphview.cpp \
+    datasettingswidget.cpp \
+    visualisationsettingswidget.cpp
 
 HEADERS  += mainwindow.h \
     queryeditor.h \
     dockbutton.h \
     sparqltextedit.h \
     progressoverlay.h \
-    widgetwithoverlay.h \
     sparqlquery.h \
-    connectionsettingswidget.h \
     dataset.h \
     sparqltokenizer.h \
     sparqlhighlighter.h \
@@ -48,4 +47,7 @@ HEADERS  += mainwindow.h \
     publication.h \
     scene.h \
     vnode.h \
-    identifier.h
+    identifier.h \
+    graphview.h \
+    datasettingswidget.h \
+    visualisationsettingswidget.h
