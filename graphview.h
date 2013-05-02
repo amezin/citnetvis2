@@ -15,7 +15,9 @@ public:
     ProgressOverlay *progressOverlay() const { return overlay; }
 
 public slots:
-    void resetScale();
+    void zoomOriginal();
+    void zoomIn();
+    void zoomOut();
 
 protected:
     virtual void resizeEvent(QResizeEvent *);
@@ -27,6 +29,7 @@ private:
     QGraphicsView *view;
     QSlider *slider;
     ProgressOverlay *overlay;
+    QAction *zoomInAction, *zoomOutAction, *zoomOriginalAction;
 };
 
 #endif // GRAPHVIEW_H
