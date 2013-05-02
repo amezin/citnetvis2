@@ -88,6 +88,18 @@ private:
 
     QHash<VNodeRef, QRectF> labelRects;
     QHash<VNodeRef, QRectF> nodeRects;
+
+    QHash<Identifier, QSharedPointer<QGraphicsSimpleTextItem> >
+    labels, oldLabels;
+    QHash<Identifier, QSharedPointer<QGraphicsEllipseItem> >
+    nodeMarkers, oldNodeMarkers;
+    QHash<QPair<VNodeRef, VNodeRef>, QSharedPointer<QGraphicsLineItem> >
+    edgeLines, oldEdgeLines;
+
+    void addNodeMarker(const VNodeRef &, qreal r);
+    void addEdgeLine(const VNodeRef &, const VNodeRef &, const QPen &);
+    void addLabel(const VNodeRef &, const QPointF &, const QFont &,
+                  const QBrush &);
 };
 
 #endif // SCENE_H

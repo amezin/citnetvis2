@@ -224,17 +224,78 @@ void Scene::absoluteCoords()
     build();
 }
 
+void Scene::addNodeMarker(const VNodeRef &n, qreal r)
+{
+    if (!n->publication) {
+        return;
+    }
+    QRectF rect(n->x - r, n->y - r, r * 2, r * 2);
+
+    QSharedPointer<QGraphicsEllipseItem> ptr;
+    auto found = oldNodeMarkers.find(n->publication);
+    if (found != oldNodeMarkers.end()) {
+        ptr = *found;
+        ptr->setRect(rect);
+        ptr->setBrush(n->color);
+    } else {
+        ptr = QSharedPointer<QGraphicsEllipseItem>(
+                    addEllipse(rect, Qt::NoPen, n->color));
+    }
+    nodeMarkers.insert(n->publication, ptr);
+}
+
+void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
+                        const QPen &pen)
+{
+    QLineF line(start->x, start->y, end->x, end->y);
+    auto key = qMakePair(start, end);
+    QSharedPointer<QGraphicsLineItem> ptr;
+    auto found = oldEdgeLines.find(key);
+    if (found != oldEdgeLines.end()) {
+        ptr = *found;
+        ptr->setPen(pen);
+        ptr->setLine(line);
+    } else {
+        ptr = QSharedPointer<QGraphicsLineItem>(addLine(line, pen));
+        ptr->setZValue(-1);
+    }
+    edgeLines.insert(key, ptr);
+}
+
+void Scene::addLabel(const VNodeRef &n, const QPointF &pos, const QFont &font,
+                     const QBrush &brush)
+{
+    if (!n->publication) {
+        return;
+    }
+
+    QSharedPointer<QGraphicsSimpleTextItem> ptr;
+    auto found = oldLabels.find(n->publication);
+    if (found != oldLabels.end()) {
+        ptr = *found;
+        ptr->setFont(font);
+        ptr->setText(n->label);
+    } else {
+        ptr = QSharedPointer<QGraphicsSimpleTextItem>(
+                    addSimpleText(n->label, font));
+        ptr->setZValue(1);
+    }
+
+    ptr->setBrush(brush);
+    ptr->setPos(pos);
+
+    labels.insert(n->publication, ptr);
+}
+
 void Scene::build()
 {
-    clear();
+    labels.swap(oldLabels);
+    edgeLines.swap(oldEdgeLines);
+    nodeMarkers.swap(oldNodeMarkers);
 
     for (auto l : layers) {
         for (auto n : l) {
-            if (n->publication) {
-                auto r = radius(n);
-                addEllipse(n->x - r, n->y - r, r * 2, r * 2,
-                           Qt::NoPen, n->color);
-            }
+            addNodeMarker(n, radius(n));
             for (auto r : n->neighbors) {
                 if (n->currentLayer > r->currentLayer) {
                     continue;
@@ -244,13 +305,16 @@ void Scene::build()
                                   parameters[EdgeValue]);
                 QPen edgePen(edgeColor, parameters[EdgeThickness]);
                 edgePen.setCapStyle(Qt::RoundCap);
-                auto line = addLine(n->x, n->y, r->x, r->y, edgePen);
-                line->setZValue(-1);
+                addEdgeLine(n, r, edgePen);
             }
         }
     }
 
     placeLabels();
+
+    oldLabels.clear();
+    oldEdgeLines.clear();
+    oldNodeMarkers.clear();
 }
 
 qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)
@@ -344,14 +408,10 @@ void Scene::placeLabels()
     }
 
     for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
-        auto label = addSimpleText(n.key()->label, font);
         QColor pubColor;
         pubColor.setHsvF(n.key()->color.hueF(), parameters[TextSaturation],
                          parameters[TextValue]);
-        label->setBrush(pubColor);
-        label->setZValue(1);
-
-        label->setPos(labelRects[n.key()].topLeft());
+        addLabel(n.key(), labelRects[n.key()].topLeft(), font, pubColor);
     }
 }
 
