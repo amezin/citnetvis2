@@ -243,6 +243,7 @@ void Scene::build()
                 edgeColor.setHsvF(edgeColor.hueF(), parameters[EdgeSaturation],
                                   parameters[EdgeValue]);
                 QPen edgePen(edgeColor, parameters[EdgeThickness]);
+                edgePen.setCapStyle(Qt::RoundCap);
                 auto line = addLine(n->x, n->y, r->x, r->y, edgePen);
                 line->setZValue(-1);
             }
@@ -481,6 +482,7 @@ void Scene::fixPublicationInfoAndDate()
         publicationInfo[i.key()].reverseDeg = 0;
     }
 
+    QSet<Identifier> noDate;
     for (auto i = publications.begin(); i != publications.end(); i++) {
         bool changeDate = i->date.isEmpty();
         if (changeDate) {
@@ -497,6 +499,8 @@ void Scene::fixPublicationInfoAndDate()
         }
         if (changeDate && !i->date.isEmpty()) {
             qWarning() << "Set date for" << i->iri() << "to" << i->date;
+        } else {
+            noDate.insert(i.key());
         }
     }
 
@@ -504,7 +508,9 @@ void Scene::fixPublicationInfoAndDate()
         foreach (auto j, i->references) {
             auto k = publications.find(j);
             if (k != publications.end()) {
-                if (k->date.isEmpty() && !i->date.isEmpty()) {
+                if (noDate.contains(k.key()) && !i->date.isEmpty() &&
+                        (i->date < k->date || k->date.isEmpty()))
+                {
                     k->date = i->date;
                     qWarning() << "Set date for" << i->iri() << "to" << i->date;
                 }

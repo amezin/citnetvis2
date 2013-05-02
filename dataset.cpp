@@ -209,7 +209,6 @@ void Dataset::addProperties(const SparqlQuery::Results &results)
 
             if (idx == -1) {
                 qWarning() << "Can't find date substring in" << date;
-                j->date = date;
             } else {
                 j->date = date.mid(idx, dateSubstring.matchedLength());
             }
