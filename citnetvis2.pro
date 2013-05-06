@@ -32,7 +32,8 @@ SOURCES += main.cpp\
     visualisationsettingswidget.cpp \
     lineanimation.cpp \
     nodeanimation.cpp \
-    labelanimation.cpp
+    labelanimation.cpp \
+    opacityanimation.cpp
 
 HEADERS  += mainwindow.h \
     queryeditor.h \
@@ -56,4 +57,5 @@ HEADERS  += mainwindow.h \
     visualisationsettingswidget.h \
     lineanimation.h \
     nodeanimation.h \
-    labelanimation.h
+    labelanimation.h \
+    opacityanimation.h

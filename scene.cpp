@@ -16,6 +16,7 @@
 #include "lineanimation.h"
 #include "nodeanimation.h"
 #include "labelanimation.h"
+#include "opacityanimation.h"
 
 Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 {
@@ -236,6 +237,12 @@ void Scene::runAnim(QVariantAnimation *anim)
     anim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
+void Scene::fadeIn(QGraphicsItem *item)
+{
+    item->setOpacity(0);
+    runAnim(new OpacityAnimation(item, 1, this));
+}
+
 void Scene::addNodeMarker(const VNodeRef &n, qreal r)
 {
     if (!n->publication) {
@@ -254,6 +261,7 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r)
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
                     addEllipse(rect, Qt::NoPen, n->color));
+        fadeIn(ptr.data());
     }
     nodeMarkers.insert(n->publication, ptr);
 }
@@ -274,6 +282,7 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
     } else {
         ptr = QSharedPointer<QGraphicsLineItem>(addLine(line, pen));
         ptr->setZValue(-1);
+        fadeIn(ptr.data());
     }
     edgeLines.insert(key, ptr);
 }
@@ -299,6 +308,7 @@ void Scene::addLabel(const VNodeRef &n, const QPointF &pos, const QFont &font,
                     addSimpleText(n->label, font));
         ptr->setZValue(1);
         ptr->setPos(pos);
+        fadeIn(ptr.data());
     }
 
     ptr->setBrush(brush);
