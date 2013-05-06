@@ -27,6 +27,7 @@ private:
     Scene *scene;
     QDoubleSpinBox *spinBox[Scene::NParameters];
     QFormLayout *layout;
+    bool blockUpdates;
 };
 
 #endif // VISUALISATIONSETTINGSWIDGET_H

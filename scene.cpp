@@ -13,6 +13,10 @@
 #include <QtAlgorithms>
 #include <qmath.h>
 
+#include "lineanimation.h"
+#include "nodeanimation.h"
+#include "labelanimation.h"
+
 Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 {
     color = QColor::fromHsvF(qrand() / static_cast<qreal>(RAND_MAX), 1, 1);
@@ -34,6 +38,7 @@ Scene::Scene(QObject *parent) :
     parameters[TextValue] = 0.5;
 
     parameters[FontSize] = 6;
+    parameters[AnimationDuration] = 1;
 }
 
 void Scene::setDataset(const Dataset &ds)
@@ -48,7 +53,6 @@ void Scene::setDataset(const Dataset &ds)
     fixPublicationInfoAndDate();
 
     findEdgesInsideLayers();
-    removeCycles();
     arrangeToLayers();
 
     clearAdjacencyData();
@@ -172,6 +176,8 @@ bool Scene::applyForces(Scene::Layer &l)
 
 void Scene::absoluteCoords()
 {
+    qDebug() << "Called" << __FUNCTION__;
+
     for (auto l : layers) {
         qreal y = 0;
         for (auto n : l) {
@@ -224,6 +230,12 @@ void Scene::absoluteCoords()
     build();
 }
 
+void Scene::runAnim(QVariantAnimation *anim)
+{
+    anim->setDuration(static_cast<int>(parameters[AnimationDuration] * 1000));
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
+}
+
 void Scene::addNodeMarker(const VNodeRef &n, qreal r)
 {
     if (!n->publication) {
@@ -235,8 +247,10 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r)
     auto found = oldNodeMarkers.find(n->publication);
     if (found != oldNodeMarkers.end()) {
         ptr = *found;
-        ptr->setRect(rect);
         ptr->setBrush(n->color);
+        if (ptr->rect() != rect) {
+            runAnim(new NodeAnimation(ptr.data(), rect, this));
+        }
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
                     addEllipse(rect, Qt::NoPen, n->color));
@@ -254,7 +268,9 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
     if (found != oldEdgeLines.end()) {
         ptr = *found;
         ptr->setPen(pen);
-        ptr->setLine(line);
+        if (ptr->line() != line) {
+            runAnim(new LineAnimation(ptr.data(), line, this));
+        }
     } else {
         ptr = QSharedPointer<QGraphicsLineItem>(addLine(line, pen));
         ptr->setZValue(-1);
@@ -275,20 +291,32 @@ void Scene::addLabel(const VNodeRef &n, const QPointF &pos, const QFont &font,
         ptr = *found;
         ptr->setFont(font);
         ptr->setText(n->label);
+        if (ptr->pos() != pos) {
+            runAnim(new LabelAnimation(ptr.data(), pos, this));
+        }
     } else {
         ptr = QSharedPointer<QGraphicsSimpleTextItem>(
                     addSimpleText(n->label, font));
         ptr->setZValue(1);
+        ptr->setPos(pos);
     }
 
     ptr->setBrush(brush);
-    ptr->setPos(pos);
 
     labels.insert(n->publication, ptr);
 }
 
 void Scene::build()
 {
+    foreach (QObject *p, children()) {
+        auto anim = qobject_cast<QAbstractAnimation *>(p);
+        if (anim) {
+            anim->setCurrentTime(anim->totalDuration());
+            anim->stop();
+            delete anim;
+        }
+    }
+
     labels.swap(oldLabels);
     edgeLines.swap(oldEdgeLines);
     nodeMarkers.swap(oldNodeMarkers);
@@ -432,19 +460,28 @@ qreal Scene::tryPlaceLabel(const QRectF &rect) const
     return result;
 }
 
-int Scene::computeSubLevel(const Identifier &p)
+int Scene::computeSubLevel(const Identifier &p, QSet<Identifier> &inStack)
 {
     if (subLevels.contains(p)) {
         return subLevels[p];
     }
 
+    inStack.insert(p);
+
     int maxSubLevel = 0;
 
     foreach (auto i, inLayerEdges[p]) {
-        maxSubLevel = qMax(maxSubLevel, computeSubLevel(i) + 1);
+        if (inStack.contains(i)) {
+            qWarning() << "Cycle with (" << p << ',' << i << ")";
+            continue;
+        }
+        maxSubLevel = qMax(maxSubLevel, computeSubLevel(i, inStack) + 1);
     }
 
     subLevels[p] = maxSubLevel;
+
+    inStack.remove(p);
+
     return maxSubLevel;
 }
 
@@ -453,8 +490,9 @@ void Scene::arrangeToLayers()
     subLevels.clear();
 
     QSet<LayerId> usedLayers;
+    QSet<Identifier> inStack;
     foreach (auto i, publications) {
-        LayerId layer(i.date, computeSubLevel(i.iri()));
+        LayerId layer(i.date, computeSubLevel(i.iri(), inStack));
         if (!layers.contains(layer)) {
             layers.insert(layer, Layer());
         }
@@ -473,37 +511,6 @@ void Scene::arrangeToLayers()
         maxSubLevel = qMax(maxSubLevel, i);
     }
     qDebug() << "Max subLevel:" << maxSubLevel;
-}
-
-void Scene::removeCycles(const Identifier &p, QSet<Identifier> &visited,
-                         QSet<Identifier> &inStack)
-{
-    if (visited.contains(p)) {
-        return;
-    }
-
-    inStack.insert(p);
-
-    QMutableSetIterator<Identifier> i(inLayerEdges[p]);
-    while (i.hasNext()) {
-        if (inStack.contains(i.next())) {
-            qWarning() << "Cycle found. Ignoring edge" << p << "," << i.value();
-            i.remove();
-        } else {
-            removeCycles(i.value(), visited, inStack);
-        }
-    }
-
-    inStack.remove(p);
-    visited.insert(p);
-}
-
-void Scene::removeCycles()
-{
-    QSet<Identifier> visited, inStack;
-    for (auto i = inLayerEdges.begin(); i != inLayerEdges.end(); i++) {
-        removeCycles(i.key(), visited, inStack);
-    }
 }
 
 void Scene::clearAdjacencyData()

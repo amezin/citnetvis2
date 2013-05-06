@@ -8,6 +8,7 @@
 #include <QGraphicsLineItem>
 #include <QGraphicsEllipseItem>
 #include <QLinkedList>
+#include <QVariantAnimation>
 
 #include "dataset.h"
 #include "vnode.h"
@@ -33,6 +34,7 @@ public:
         TextSaturation,
         TextValue,
         FontSize,
+        AnimationDuration,
 
         NParameters
     };
@@ -47,23 +49,19 @@ public slots:
 private:
     typedef QPair<QString, int> LayerId;
 
-    void removeCycles(const Identifier &p,
-                      QSet<Identifier> &visited,
-                      QSet<Identifier> &inStack);
-
-    int computeSubLevel(const Identifier &p);
+    int computeSubLevel(const Identifier &p, QSet<Identifier> &inStack);
 
     void addEdge(const Publication &a, const Publication &b);
     void removeOldNodes();
     void fixPublicationInfoAndDate();
     void findEdgesInsideLayers();
     void clearAdjacencyData();
-    void removeCycles();
     void arrangeToLayers();
     bool applyForces(Scene::Layer &l);
     void placeLabels();
     qreal tryPlaceLabel(const QRectF &) const;
     qreal placeLabel(const VNodeRef &n, QRectF rect);
+    void runAnim(QVariantAnimation *);
 
     struct PublicationInfo
     {

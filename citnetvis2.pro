@@ -29,7 +29,10 @@ SOURCES += main.cpp\
     scene.cpp \
     graphview.cpp \
     datasettingswidget.cpp \
-    visualisationsettingswidget.cpp
+    visualisationsettingswidget.cpp \
+    lineanimation.cpp \
+    nodeanimation.cpp \
+    labelanimation.cpp
 
 HEADERS  += mainwindow.h \
     queryeditor.h \
@@ -50,4 +53,7 @@ HEADERS  += mainwindow.h \
     identifier.h \
     graphview.h \
     datasettingswidget.h \
-    visualisationsettingswidget.h
+    visualisationsettingswidget.h \
+    lineanimation.h \
+    nodeanimation.h \
+    labelanimation.h
