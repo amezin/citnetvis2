@@ -33,6 +33,8 @@ public:
         EdgeValue,
         TextSaturation,
         TextValue,
+        AdditionalNodeSaturation,
+        AdditionalNodeValue,
         FontSize,
         AnimationDuration,
 
@@ -95,7 +97,7 @@ private:
     QHash<QPair<VNodeRef, VNodeRef>, QSharedPointer<QGraphicsLineItem> >
     edgeLines, oldEdgeLines;
 
-    void addNodeMarker(const VNodeRef &, qreal r);
+    void addNodeMarker(const VNodeRef &, qreal r, const QColor &);
     void addEdgeLine(const VNodeRef &, const VNodeRef &, const QPen &);
     void addLabel(const VNodeRef &, const QPointF &, const QFont &,
                   const QBrush &);

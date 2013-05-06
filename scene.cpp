@@ -37,6 +37,8 @@ Scene::Scene(QObject *parent) :
     parameters[EdgeValue] = 1;
     parameters[TextSaturation] = 1;
     parameters[TextValue] = 0.5;
+    parameters[AdditionalNodeSaturation] = 0.25;
+    parameters[AdditionalNodeValue] = 1;
 
     parameters[FontSize] = 6;
     parameters[AnimationDuration] = 1;
@@ -243,7 +245,7 @@ void Scene::fadeIn(QGraphicsItem *item)
     runAnim(new OpacityAnimation(item, 1, this));
 }
 
-void Scene::addNodeMarker(const VNodeRef &n, qreal r)
+void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
 {
     if (!n->publication) {
         return;
@@ -254,13 +256,13 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r)
     auto found = oldNodeMarkers.find(n->publication);
     if (found != oldNodeMarkers.end()) {
         ptr = *found;
-        ptr->setBrush(n->color);
+        ptr->setBrush(color);
         if (ptr->rect() != rect) {
             runAnim(new NodeAnimation(ptr.data(), rect, this));
         }
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
-                    addEllipse(rect, Qt::NoPen, n->color));
+                    addEllipse(rect, Qt::NoPen, color));
         fadeIn(ptr.data());
     }
     nodeMarkers.insert(n->publication, ptr);
@@ -333,7 +335,15 @@ void Scene::build()
 
     for (auto l : layers) {
         for (auto n : l) {
-            addNodeMarker(n, radius(n));
+            if (n->publication) {
+                QColor color(n->color);
+                if (!publications.find(n->publication)->recurse) {
+                    color.setHsvF(color.hueF(),
+                                  parameters[AdditionalNodeSaturation],
+                                  parameters[AdditionalNodeValue]);
+                }
+                addNodeMarker(n, radius(n), color);
+            }
             for (auto r : n->neighbors) {
                 if (n->currentLayer > r->currentLayer) {
                     continue;
