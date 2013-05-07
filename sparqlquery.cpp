@@ -2,6 +2,9 @@
 
 #include <QNetworkAccessManager>
 #include <QNetworkConfiguration>
+#if QT_VERSION >= QT_VERSION_CHECK(5,0,0)
+#   include <QUrlQuery>
+#endif
 
 Q_GLOBAL_STATIC(QNetworkAccessManager, network)
 
@@ -12,9 +15,15 @@ int SparqlQuery::maxParallelQueries()
 
 static QByteArray encodeQuery(const QString &query)
 {
+#if QT_VERSION < QT_VERSION_CHECK(5, 0, 0)
     QUrl url;
     url.addQueryItem("query", query);
     return url.encodedQuery();
+#else
+    QUrlQuery q;
+    q.addQueryItem("query", query);
+    return q.query(QUrl::FullyEncoded).toUtf8();
+#endif
 }
 
 SparqlQuery::SparqlQuery(const QUrl &endpoint, const QString &query,
