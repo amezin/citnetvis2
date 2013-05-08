@@ -22,9 +22,9 @@ static bool hexValue(const QStringRef &s, QChar &v)
         n *= 16;
         QChar c = s.at(i);
         if (decDigit(c)) {
-            n += c.toLatin1() - L'a' + 10;
+            n += c.toAscii() - 'a' + 10;
         } else if (c >= 'A' && c <= 'F') {
-            n += c.toLatin1() - L'A' + 10;
+            n += c.toAscii() - 'A' + 10;
         } else {
             return false;
         }
