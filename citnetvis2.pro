@@ -7,6 +7,7 @@
 QT       += core gui network xml
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): DEFINES += "QT_DISABLE_DEPRECATED_BEFORE=0"
 
 TARGET = citnetvis2
 TEMPLATE = app
