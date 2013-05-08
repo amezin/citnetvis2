@@ -14,8 +14,8 @@ for file in os.listdir("."):
 rc = io.open("icons.qrc", "w")
 
 rc.write("""<RCC>
-  <qresource prefix="themes">
-      <file>oxygen/index.theme</file>
+  <qresource>
+      <file>oxygen-icons/oxygen/index.theme</file>
 """)
 
 def printlist(dir):
