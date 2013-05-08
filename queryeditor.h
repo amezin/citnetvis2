@@ -27,7 +27,7 @@ private slots:
 
 private:
     QAction *addAction(const QString &text,
-                       const QString &icon,
+                       const QIcon &icon,
                        const QKeySequence &shortcut,
                        const char *slot = 0,
                        const char *availableSignal = 0);

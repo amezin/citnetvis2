@@ -8,12 +8,12 @@
 #include <QToolBar>
 
 QAction *QueryEditor::addAction(const QString &text,
-                                const QString &icon,
+                                const QIcon &icon,
                                 const QKeySequence &shortcut,
                                 const char *slot,
                                 const char *availableSignal)
 {
-    auto action = new QAction(QIcon::fromTheme(icon), text, this);
+    auto action = new QAction(icon, text, this);
     action->setShortcut(shortcut);
 
     if (slot) {
@@ -40,35 +40,39 @@ QueryEditor::QueryEditor(QWidget *parent)
     toolBar->setObjectName(objectName() + "Toolbar");
     addToolBar(toolBar);
 
-    auto loadAction = addAction("L&oad", "document-open", QKeySequence::Open);
+    auto loadAction = addAction("L&oad", QIcon::fromTheme("document-open"),
+                                QKeySequence::Open);
     connect(loadAction, SIGNAL(triggered()), SLOT(load()));
 
-    auto saveAction = addAction("&Save", "document-save", QKeySequence::Save);
+    auto saveAction = addAction("&Save", QIcon::fromTheme("document-save"),
+                                QKeySequence::Save);
     connect(saveAction, SIGNAL(triggered()), SLOT(save()));
 
     toolBar->addSeparator();
 
-    addAction("&Undo", "edit-undo", QKeySequence::Undo, SLOT(undo()),
-              SIGNAL(undoAvailable(bool)))->setEnabled(false);
-    addAction("&Redo", "edit-redo", QKeySequence::Redo, SLOT(redo()),
-              SIGNAL(redoAvailable(bool)))->setEnabled(false);
+    addAction("&Undo", QIcon::fromTheme("edit-undo"), QKeySequence::Undo,
+              SLOT(undo()), SIGNAL(undoAvailable(bool)))->setEnabled(false);
+    addAction("&Redo", QIcon::fromTheme("edit-redo"), QKeySequence::Redo,
+              SLOT(redo()), SIGNAL(redoAvailable(bool)))->setEnabled(false);
 
     toolBar->addSeparator();
 
-    addAction("Cu&t", "edit-cut", QKeySequence::Cut, SLOT(cut()),
-              SIGNAL(copyAvailable(bool)))->setEnabled(false);
-    addAction("&Copy", "edit-copy", QKeySequence::Copy, SLOT(copy()),
-              SIGNAL(copyAvailable(bool)))->setEnabled(false);
-    addAction("&Paste", "edit-paste", QKeySequence::Paste, SLOT(paste()));
+    addAction("Cu&t", QIcon::fromTheme("edit-cut"), QKeySequence::Cut,
+              SLOT(cut()), SIGNAL(copyAvailable(bool)))->setEnabled(false);
+    addAction("&Copy", QIcon::fromTheme("edit-copy"), QKeySequence::Copy,
+              SLOT(copy()), SIGNAL(copyAvailable(bool)))->setEnabled(false);
+    addAction("&Paste", QIcon::fromTheme("edit-paste"), QKeySequence::Paste,
+              SLOT(paste()));
 
     toolBar->addSeparator();
 
-    addAction("Select &All", "edit-select-all", QKeySequence::SelectAll,
-              SLOT(selectAll()));
+    addAction("Select &All", QIcon::fromTheme("edit-select-all"),
+              QKeySequence::SelectAll, SLOT(selectAll()));
 
     toolBar->addSeparator();
 
-    auto fontAction = addAction("Change &font", "preferences-desktop-font",
+    auto fontAction = addAction("Change &font",
+                                QIcon::fromTheme("preferences-desktop-font"),
                                 QKeySequence::Preferences);
     connect(fontAction, SIGNAL(triggered()), SLOT(changeFont()));
 
