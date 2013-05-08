@@ -1,6 +1,6 @@
 <RCC>
-  <qresource prefix="themes">
-      <file>oxygen/index.theme</file>
+  <qresource>
+      <file>oxygen-icons/oxygen/index.theme</file>
       <file>oxygen-icons/oxygen/128x128/status/dialog-warning.png</file>
       <file>oxygen-icons/oxygen/128x128/status/dialog-information.png</file>
       <file>oxygen-icons/oxygen/128x128/status/dialog-error.png</file>
