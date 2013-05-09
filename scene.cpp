@@ -18,6 +18,7 @@
 #include "nodeanimation.h"
 #include "labelanimation.h"
 #include "opacityanimation.h"
+#include "disappearanimation.h"
 
 Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 {
@@ -236,16 +237,12 @@ void Scene::absoluteCoords()
     build();
 }
 
-void Scene::runAnim(QVariantAnimation *anim)
+static void runAnim(QVariantAnimation *anim)
 {
-    anim->setDuration(static_cast<int>(parameters[AnimationDuration] * 1000));
+    auto scene = qobject_cast<Scene *>(anim->parent());
+    anim->setDuration(static_cast<int>(
+                          scene->parameters[Scene::AnimationDuration] * 1000));
     anim->start(QAbstractAnimation::DeleteWhenStopped);
-}
-
-void Scene::fadeIn(QGraphicsItem *item)
-{
-    item->setOpacity(0);
-    runAnim(new OpacityAnimation(item, 1, this));
 }
 
 void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
@@ -266,7 +263,6 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
                     addEllipse(rect, Qt::NoPen, color));
-        fadeIn(ptr.data());
     }
     nodeMarkers.insert(n->publication, ptr);
 }
@@ -287,7 +283,6 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
     } else {
         ptr = QSharedPointer<QGraphicsLineItem>(addLine(line, pen));
         ptr->setZValue(-1);
-        fadeIn(ptr.data());
     }
     edgeLines.insert(key, ptr);
 }
@@ -313,12 +308,31 @@ void Scene::addLabel(const VNodeRef &n, const QPointF &pos, const QFont &font,
                     addSimpleText(n->label, font));
         ptr->setZValue(1);
         ptr->setPos(pos);
-        fadeIn(ptr.data());
     }
 
     ptr->setBrush(brush);
 
     labels.insert(n->publication, ptr);
+}
+
+template<class K, class V>
+void animateItems(QHash<K, QSharedPointer<V> > &old,
+                  const QHash<K, QSharedPointer<V> > &n,
+                  Scene *s)
+{
+    for (auto i = old.begin(); i != old.end(); i++) {
+        if (!n.contains(i.key())) {
+            runAnim(new DisappearAnimation(i.value(), s));
+        }
+    }
+    for (auto i = n.begin(); i != n.end(); i++) {
+        if (!old.contains(i.key())) {
+            i.value()->setOpacity(0);
+            runAnim(new OpacityAnimation(i.value().data(), 1, s));
+        }
+    }
+
+    old.clear();
 }
 
 void Scene::build()
@@ -363,9 +377,9 @@ void Scene::build()
 
     placeLabels();
 
-    oldLabels.clear();
-    oldEdgeLines.clear();
-    oldNodeMarkers.clear();
+    animateItems(oldLabels, labels, this);
+    animateItems(oldEdgeLines, edgeLines, this);
+    animateItems(oldNodeMarkers, nodeMarkers, this);
 }
 
 qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)

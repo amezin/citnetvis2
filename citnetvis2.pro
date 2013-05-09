@@ -38,7 +38,8 @@ SOURCES += main.cpp\
     lineanimation.cpp \
     nodeanimation.cpp \
     labelanimation.cpp \
-    opacityanimation.cpp
+    opacityanimation.cpp \
+    disappearanimation.cpp
 
 HEADERS  += mainwindow.h \
     queryeditor.h \
@@ -63,4 +64,5 @@ HEADERS  += mainwindow.h \
     lineanimation.h \
     nodeanimation.h \
     labelanimation.h \
-    opacityanimation.h
+    opacityanimation.h \
+    disappearanimation.h

@@ -64,8 +64,6 @@ private:
     void placeLabels();
     qreal tryPlaceLabel(const QRectF &) const;
     qreal placeLabel(const VNodeRef &n, QRectF rect);
-    void runAnim(QVariantAnimation *);
-    void fadeIn(QGraphicsItem *);
 
     struct PublicationInfo
     {
