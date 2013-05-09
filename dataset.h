@@ -52,7 +52,8 @@ private:
     void emitProgress();
     void setError(const QString &);
     void checkPredicate(const QString &);
-    void queryPublication(const QString &);
+    QHash<Identifier, Publication>::Iterator
+    queryPublication(const Identifier &, bool recurse = false);
 
     QSet<SparqlQuery*> inProgress;
 
@@ -69,6 +70,8 @@ private:
 
     QHash<Identifier, Publication> currentPublications;
     QSet<Identifier> dataReceivedFor;
+
+    friend struct CacheInfo;
 };
 
 #endif // DATASET_H

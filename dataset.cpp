@@ -5,6 +5,36 @@
 #include <QTimer>
 #include <QDebug>
 
+struct CacheInfo
+{
+    QString queryBegin, queryEnd, dateRegEx;
+    QUrl endpointUrl;
+    Identifier id;
+
+    CacheInfo(const Dataset &ds, const Identifier &id)
+        : queryBegin(ds.queryBegin), queryEnd(ds.queryEnd),
+          dateRegEx(ds.dateSubstring.pattern()), endpointUrl(ds.endpoint),
+          id(id)
+    {
+    }
+};
+
+bool operator ==(const CacheInfo &a, const CacheInfo &b)
+{
+    return (a.queryBegin == b.queryBegin) && (a.queryEnd == b.queryEnd) &&
+            (a.dateRegEx == b.dateRegEx) && (a.endpointUrl == b.endpointUrl) &&
+            (a.id == b.id);
+}
+
+uint qHash(const CacheInfo &info)
+{
+    return qHash(info.queryBegin) + qHash(info.queryEnd) + qHash(info.dateRegEx)
+            + qHash(info.endpointUrl) + qHash(info.id);
+}
+
+typedef QHash<CacheInfo, Publication> PublicationCache;
+Q_GLOBAL_STATIC(PublicationCache, cache)
+
 Dataset::Dataset(const QUrl &endpointUrl, const QString &query,
                  const QString &hasDate, const QString &hasTitle,
                  const QString &citesPublicationReference,
@@ -87,6 +117,14 @@ void Dataset::queryFinished()
 
     if (!prevFinished && isFinished()) {
         qDebug() << "Nothing more to load";
+
+        if (!hasError()) {
+            cache()->clear();
+            for (auto p : currentPublications) {
+                cache()->insert(CacheInfo(*this, p.iri()), p);
+            }
+        }
+
         emit finished();
     }
 }
@@ -120,6 +158,25 @@ void Dataset::setError(const QString &err)
     abort();
 }
 
+QHash<Identifier, Publication>::Iterator
+Dataset::queryPublication(const Identifier &id, bool recurse)
+{
+    auto found = currentPublications.find(id);
+    if (found == currentPublications.end()) {
+        auto cached = cache()->find(CacheInfo(*this, id));
+        if (cached == cache()->end()) {
+            qDebug() << "Cache miss" << id;
+            found = currentPublications.insert(id, Publication(id, recurse));
+            publicationQueue.append(id.toString());
+        } else {
+            qDebug() << "Cache hit" << id;
+            found = currentPublications.insert(id, *cached);
+            found->recurse = false;
+        }
+    }
+    return found;
+}
+
 void Dataset::addPublications(const SparqlQuery::Results &results)
 {
     foreach (auto i, results) {
@@ -128,18 +185,11 @@ void Dataset::addPublications(const SparqlQuery::Results &results)
             return;
         }
 
-        Identifier id(i.begin().value());
-        auto found = currentPublications.find(id);
-        if (found == currentPublications.end()) {
-            currentPublications.insert(id, Publication(id, true));
-            publicationQueue.append(id.toString());
-        } else if (!found->recurse) {
+        auto found = queryPublication(Identifier(i.begin().value()), true);
+        if (!found->recurse) {
             found->recurse = true;
             foreach (auto ref, found->references) {
-                if (!currentPublications.contains(ref)) {
-                    currentPublications.insert(ref, Publication(ref));
-                    publicationQueue.append(ref.toString());
-                }
+                queryPublication(ref);
             }
         }
     }
@@ -218,9 +268,8 @@ void Dataset::addProperties(const SparqlQuery::Results &results)
             Identifier ref(i[object]);
             j->references.insert(ref);
 
-            if (j->recurse && !currentPublications.contains(ref)) {
-                currentPublications.insert(ref, Publication(ref));
-                publicationQueue.append(ref.toString());
+            if (j->recurse) {
+                queryPublication(ref);
             }
         } else {
             setError("Unexpected predicate " + pred +
