@@ -29,9 +29,9 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     addSpinBox(Scene::TextValue, "Text color value", 0.0, 1.0);
 
     addSpinBox(Scene::AdditionalNodeSaturation,
-               "Non-matching node color saturation", 0.0, 1.0);
+               "Referenced node color saturation", 0.0, 1.0);
     addSpinBox(Scene::AdditionalNodeValue,
-               "Non-matching node color value", 0.0, 1.0);
+               "Referenced node color value", 0.0, 1.0);
 }
 
 void VisualisationSettingsWidget::updateSceneParameters()
