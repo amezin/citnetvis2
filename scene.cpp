@@ -28,6 +28,8 @@ Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 Scene::Scene(QObject *parent) :
     QGraphicsScene(parent)
 {
+    setItemIndexMethod(QGraphicsScene::NoIndex);
+
     parameters[RadiusBase] = 5;
     parameters[RadiusK] = 5;
     parameters[Spacing] = 7;
