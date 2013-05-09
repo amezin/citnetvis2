@@ -32,6 +32,8 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
                "Referenced node color saturation", 0.0, 1.0);
     addSpinBox(Scene::AdditionalNodeValue,
                "Referenced node color value", 0.0, 1.0);
+
+    addSpinBox(Scene::LabelPlacementTime, "Label placement timeout", 0.0, 1.0);
 }
 
 void VisualisationSettingsWidget::updateSceneParameters()

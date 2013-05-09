@@ -37,6 +37,7 @@ public:
         AdditionalNodeValue,
         FontSize,
         AnimationDuration,
+        LabelPlacementTime,
 
         NParameters
     };

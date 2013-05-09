@@ -9,6 +9,7 @@
 #include <QMutableLinkedListIterator>
 #include <QVector>
 #include <QFontMetricsF>
+#include <QElapsedTimer>
 
 #include <QtAlgorithms>
 #include <qmath.h>
@@ -42,6 +43,8 @@ Scene::Scene(QObject *parent) :
 
     parameters[FontSize] = 6;
     parameters[AnimationDuration] = 1;
+
+    parameters[LabelPlacementTime] = 0.1;
 }
 
 void Scene::setDataset(const Dataset &ds)
@@ -448,12 +451,23 @@ void Scene::placeLabels()
     font.setPointSizeF(parameters[FontSize]);
     QFontMetricsF metrics(font);
 
-    for (int iter = 0; iter < 5; iter++) {
+    static const qreal ticksPerSec = 1000;
+    QElapsedTimer timer;
+    timer.start();
+    do {
+        bool change = false;
         for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
+            auto old = labelRects[n.key()];
             labelRects.remove(n.key());
             placeLabel(n.key(), metrics.boundingRect(n.key()->label));
+            if (labelRects[n.key()] != old) {
+                change = true;
+            }
         }
-    }
+        if (!change) {
+            break;
+        }
+    } while (timer.elapsed() / ticksPerSec < parameters[LabelPlacementTime]);
 
     for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
         QColor pubColor;
