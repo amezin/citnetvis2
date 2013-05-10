@@ -12,6 +12,7 @@ public:
     explicit SparqlQueryInfo(const QStringRef &);
 
     QString resolve(const QString &prefixed) const;
+    QString shorten(const QUrl &) const;
 
     const QUrl &baseIri() const { return base; }
     const QMap<QString, QString> &prefixes() const { return prefix; }
@@ -26,6 +27,7 @@ private:
 
     QUrl base;
     QMap<QString, QString> prefix;
+    QMap<QString, QString> revPrefix;
     QStringList from;
     QStringList fromNamed;
 };

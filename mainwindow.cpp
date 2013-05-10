@@ -59,6 +59,7 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     setWindowTitle(settings->applicationName());
 
     scene = new Scene(this);
+    connect(scene, SIGNAL(selectionChanged()), SLOT(selectedNodeChanged()));
     view = new GraphView(scene, this);
     setCentralWidget(view);
 
@@ -93,6 +94,9 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     auto logDock = addDockWidget(log, "Log", "Errors and warnings");
     logDock->hide();
     connect(log, SIGNAL(message()), logDock, SLOT(show()));
+
+    nodeWidget = new NodeInfoWidget(this);
+    addDockWidget(nodeWidget, "NodeInfo", "Node Info", Qt::LeftDockWidgetArea);
 
     dockBars[Qt::TopDockWidgetArea] = addDockBar(Qt::TopToolBarArea);
     dockBars[Qt::BottomDockWidgetArea] = addDockBar(Qt::BottomToolBarArea);
@@ -247,6 +251,9 @@ void MainWindow::executeQuery()
     connect(dataset, SIGNAL(finished()), SLOT(showGraph()));
     stopAction->setEnabled(true);
 
+    nodeWidget->setEndpoint(settingsWidget->endpointUrl(),
+                            dataset->queryParameters());
+
     view->progressOverlay()->setProgress(0, 0);
 }
 
@@ -254,4 +261,9 @@ void MainWindow::showGraph()
 {
     stopAction->setDisabled(true);
     scene->setDataset(*dataset);
+}
+
+void MainWindow::selectedNodeChanged()
+{
+    nodeWidget->setNode(scene->selectedNode());
 }

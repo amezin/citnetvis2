@@ -45,6 +45,8 @@ public:
 
     typedef QLinkedList<VNodeRef> Layer;
 
+    QString selectedNode() const;
+
 public slots:
     void absoluteCoords();
     void build();

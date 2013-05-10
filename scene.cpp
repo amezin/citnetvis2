@@ -265,8 +265,20 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
                     addEllipse(rect, Qt::NoPen, color));
+        ptr->setFlag(QGraphicsItem::ItemIsSelectable);
+        ptr->setToolTip(n->publication.toString());
+        ptr->setData(0, n->publication.toString());
     }
     nodeMarkers.insert(n->publication, ptr);
+}
+
+QString Scene::selectedNode() const
+{
+    auto items = selectedItems();
+    if (items.size() != 1) {
+        return QString();
+    }
+    return items.first()->data(0).toString();
 }
 
 void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,

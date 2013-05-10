@@ -70,6 +70,11 @@ SparqlQueryInfo::SparqlQueryInfo(const QStringRef &query)
         } else tokens.nextSignificant();
     }
 
+    for (auto i = prefix.begin(); i != prefix.end(); i++) {
+        revPrefix.insert(base.resolved(cutBrackets(i.value())).toString(),
+                         i.key());
+    }
+
     qDebug() << "Base" << base << "Prefix" << prefix
              << "From" << from << "Named" << fromNamed;
 }
@@ -153,4 +158,17 @@ QString SparqlQueryInfo::buildDataset(const QStringList &from,
 QString SparqlQueryInfo::dataset() const
 {
     return buildDataset(from, "FROM") + buildDataset(fromNamed, "FROM NAMED");
+}
+
+QString SparqlQueryInfo::shorten(const QUrl &iri) const
+{
+    auto resolved = base.resolved(iri).toString();
+    auto i = revPrefix.upperBound(resolved);
+    if (i != revPrefix.begin()) {
+        --i;
+    }
+    if (i == revPrefix.end() || !resolved.startsWith(i.key())) {
+        return iri.toString();
+    }
+    return i.value() + resolved.right(resolved.length() - i.key().length());
 }

@@ -12,6 +12,7 @@
 #include "dataset.h"
 #include "scene.h"
 #include "graphview.h"
+#include "nodeinfowidget.h"
 
 class MainWindow : public QMainWindow
 {
@@ -31,6 +32,7 @@ private slots:
     void executeQuery();
 
     void showGraph();
+    void selectedNodeChanged();
 
 private:
     QDockWidget *addDockWidget(QWidget *widget,
@@ -50,6 +52,7 @@ private:
     LogWidget *log;
     QueryEditor *query;
     DataSettingsWidget *settingsWidget;
+    NodeInfoWidget *nodeWidget;
 
     QSettings *settings;
     Dataset *dataset;

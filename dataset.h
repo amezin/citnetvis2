@@ -32,6 +32,8 @@ public:
         return currentPublications;
     }
 
+    const SparqlQueryInfo &queryParameters() const { return queryInfo; }
+
 public slots:
     void abort();
 
