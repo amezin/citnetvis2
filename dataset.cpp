@@ -178,6 +178,7 @@ Dataset::queryPublication(const Identifier &id, bool recurse)
             qDebug() << "Cache hit" << id;
             found = currentPublications.insert(id, *cached);
             found->recurse = false;
+            dataReceivedFor.insert(id);
         }
     }
     return found;
