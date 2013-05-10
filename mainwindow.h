@@ -30,6 +30,7 @@ private slots:
     void dockWidgetTopLevelChanged(bool);
 
     void executeQuery();
+    void clear();
 
     void showGraph();
     void selectedNodeChanged();

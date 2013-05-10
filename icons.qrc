@@ -10,6 +10,7 @@
       <file>oxygen-icons/oxygen/32x32/status/dialog-information.png</file>
       <file>oxygen-icons/oxygen/32x32/status/dialog-error.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/edit-undo.png</file>
+      <file>oxygen-icons/oxygen/32x32/actions/document-new.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/edit-redo.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/zoom-out.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/edit-copy.png</file>
@@ -27,6 +28,7 @@
       <file>oxygen-icons/oxygen/48x48/status/dialog-information.png</file>
       <file>oxygen-icons/oxygen/48x48/status/dialog-error.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/edit-undo.png</file>
+      <file>oxygen-icons/oxygen/48x48/actions/document-new.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/edit-redo.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/zoom-out.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/edit-copy.png</file>
@@ -44,6 +46,7 @@
       <file>oxygen-icons/oxygen/22x22/status/dialog-information.png</file>
       <file>oxygen-icons/oxygen/22x22/status/dialog-error.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/edit-undo.png</file>
+      <file>oxygen-icons/oxygen/22x22/actions/document-new.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/edit-redo.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/zoom-out.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/edit-copy.png</file>
@@ -66,6 +69,7 @@
       <file>oxygen-icons/oxygen/16x16/status/dialog-information.png</file>
       <file>oxygen-icons/oxygen/16x16/status/dialog-error.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/edit-undo.png</file>
+      <file>oxygen-icons/oxygen/16x16/actions/document-new.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/edit-redo.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/zoom-out.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/edit-copy.png</file>

@@ -99,6 +99,12 @@ void Dataset::abort()
     }
 }
 
+void Dataset::clear()
+{
+    abort();
+    currentPublications.clear();
+}
+
 void Dataset::queryFinished()
 {
     bool prevFinished = isFinished();

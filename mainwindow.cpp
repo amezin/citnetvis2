@@ -77,6 +77,11 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     stopAction->setShortcut(QKeySequence::Quit);
     stopAction->setEnabled(false);
 
+    auto clearAction = toolBar->addAction("Clear");
+    clearAction->setIcon(QIcon::fromTheme("document-new"));
+    clearAction->setShortcut(QKeySequence::New);
+    connect(clearAction, SIGNAL(triggered()), SLOT(clear()));
+
     view->addActions(toolBar->actions());
     view->setContextMenuPolicy(Qt::ActionsContextMenu);
 
@@ -266,4 +271,10 @@ void MainWindow::showGraph()
 void MainWindow::selectedNodeChanged()
 {
     nodeWidget->setNode(scene->selectedNode());
+}
+
+void MainWindow::clear()
+{
+    dataset->clear();
+    scene->setDataset(*dataset);
 }

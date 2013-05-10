@@ -36,6 +36,7 @@ public:
 
 public slots:
     void abort();
+    void clear();
 
 signals:
     void finished();
