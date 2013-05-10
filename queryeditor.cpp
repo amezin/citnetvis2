@@ -15,6 +15,7 @@ QAction *QueryEditor::addAction(const QString &text,
 {
     auto action = new QAction(icon, text, this);
     action->setShortcut(shortcut);
+    action->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 
     if (slot) {
         textEdit->connect(action, SIGNAL(triggered()), slot);

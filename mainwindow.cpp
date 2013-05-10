@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QMenu>
 #include <QDebug>
+#include <QSvgGenerator>
 
 #include "dockbutton.h"
 #include "persistentwidget.h"
@@ -82,6 +83,12 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     clearAction->setShortcut(QKeySequence::New);
     connect(clearAction, SIGNAL(triggered()), SLOT(clear()));
 
+    auto exportAction = toolBar->addAction("Export");
+    exportAction->setIcon(QIcon::fromTheme("document-save-as"));
+    exportAction->setShortcut(QKeySequence::Save);
+    exportAction->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    connect(exportAction, SIGNAL(triggered()), SLOT(exportImage()));
+
     view->addActions(toolBar->actions());
     view->setContextMenuPolicy(Qt::ActionsContextMenu);
 
@@ -126,6 +133,12 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     generateViewMenu(this, viewMenu);
 
     loadPersistentWidgets(this, settings);
+
+    exportDialog = new QFileDialog(this);
+    exportDialog->setAcceptMode(QFileDialog::AcceptSave);
+    exportDialog->setDefaultSuffix("svg");
+    exportDialog->setNameFilters(QStringList()
+                                 << "SVG images (*.svg)" << "All files (*)");
 }
 
 QScrollArea *MainWindow::makeScrollable(QWidget *widget)
@@ -277,4 +290,20 @@ void MainWindow::clear()
 {
     dataset->clear();
     scene->setDataset(*dataset);
+}
+
+void MainWindow::exportImage()
+{
+    if (!exportDialog->exec() || exportDialog->selectedFiles().size() != 1) {
+        return;
+    }
+
+    QSvgGenerator svg;
+    svg.setFileName(exportDialog->selectedFiles().first());
+    svg.setSize(scene->sceneRect().size().toSize());
+
+    QPainter painter(&svg);
+    scene->finishAnimations();
+    scene->clearSelection();
+    scene->render(&painter);
 }

@@ -44,7 +44,7 @@ Scene::Scene(QObject *parent) :
     parameters[AdditionalNodeSaturation] = 0.25;
     parameters[AdditionalNodeValue] = 1;
 
-    parameters[FontSize] = 6;
+    parameters[FontSize] = 8;
     parameters[AnimationDuration] = 1;
 
     parameters[LabelPlacementTime] = 0.1;
@@ -253,6 +253,7 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
         return;
     }
     QRectF rect(n->x - r, n->y - r, r * 2, r * 2);
+    finalBounds = finalBounds.united(rect);
 
     QSharedPointer<QGraphicsEllipseItem> ptr;
     auto found = oldNodeMarkers.find(n->publication);
@@ -285,6 +286,9 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
                         const QPen &pen)
 {
     QLineF line(start->x, start->y, end->x, end->y);
+    finalBounds = finalBounds.united(QRectF(qMin(line.x1(), line.x2()),
+                                            qMin(line.y1(), line.y2()),
+                                            qAbs(line.dx()), qAbs(line.dy())));
     auto key = qMakePair(start, end);
     QSharedPointer<QGraphicsLineItem> ptr;
     auto found = oldEdgeLines.find(key);
@@ -349,7 +353,7 @@ void animateItems(QHash<K, QSharedPointer<V> > &old,
     old.clear();
 }
 
-void Scene::build()
+void Scene::finishAnimations()
 {
     foreach (QObject *p, children()) {
         auto anim = qobject_cast<QAbstractAnimation *>(p);
@@ -359,10 +363,17 @@ void Scene::build()
             delete anim;
         }
     }
+}
+
+void Scene::build()
+{
+    finishAnimations();
 
     labels.swap(oldLabels);
     edgeLines.swap(oldEdgeLines);
     nodeMarkers.swap(oldNodeMarkers);
+
+    finalBounds = QRectF();
 
     for (auto l : layers) {
         for (auto n : l) {
@@ -394,6 +405,8 @@ void Scene::build()
     animateItems(oldLabels, labels, this);
     animateItems(oldEdgeLines, edgeLines, this);
     animateItems(oldNodeMarkers, nodeMarkers, this);
+
+    setSceneRect(finalBounds);
 }
 
 qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)
@@ -476,7 +489,7 @@ void Scene::placeLabels()
     }
 
     QFont font;
-    font.setPointSizeF(parameters[FontSize]);
+    font.setPixelSize(static_cast<int>(parameters[FontSize]));
     QFontMetricsF metrics(font);
 
     static const qreal ticksPerSec = 1000;
@@ -501,6 +514,7 @@ void Scene::placeLabels()
         QColor pubColor;
         pubColor.setHsvF(n.key()->color.hueF(), parameters[TextSaturation],
                          parameters[TextValue]);
+        finalBounds = finalBounds.united(labelRects[n.key()]);
         addLabel(n.key(), labelRects[n.key()].topLeft(), font, pubColor);
     }
 }

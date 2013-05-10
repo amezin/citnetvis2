@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QSettings>
 #include <QScrollArea>
+#include <QFileDialog>
 
 #include "logwidget.h"
 #include "queryeditor.h"
@@ -31,6 +32,7 @@ private slots:
 
     void executeQuery();
     void clear();
+    void exportImage();
 
     void showGraph();
     void selectedNodeChanged();
@@ -59,6 +61,7 @@ private:
     Dataset *dataset;
     QAction *stopAction;
     Scene *scene;
+    QFileDialog *exportDialog;
 };
 
 #endif // MAINWINDOW_H
