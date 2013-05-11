@@ -10,6 +10,7 @@
 #include <QVector>
 #include <QFontMetricsF>
 #include <QElapsedTimer>
+#include <QGraphicsView>
 
 #include <QtAlgorithms>
 #include <qmath.h>
@@ -490,7 +491,11 @@ void Scene::placeLabels()
 
     QFont font;
     font.setPixelSize(static_cast<int>(parameters[FontSize]));
-    QFontMetricsF metrics(font);
+    QPaintDevice *compatible = 0;
+    if (!views().isEmpty()) {
+        compatible = static_cast<QPaintDevice*>(views().first());
+    }
+    QFontMetricsF metrics(font, compatible);
 
     static const qreal ticksPerSec = 1000;
     QElapsedTimer timer;
