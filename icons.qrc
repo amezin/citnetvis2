@@ -18,6 +18,7 @@
       <file>oxygen-icons/oxygen/32x32/actions/edit-paste.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/zoom-in.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/zoom-original.png</file>
+      <file>oxygen-icons/oxygen/32x32/actions/document-save-as.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/edit-select-all.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/view-refresh.png</file>
       <file>oxygen-icons/oxygen/32x32/actions/process-stop.png</file>
@@ -36,6 +37,7 @@
       <file>oxygen-icons/oxygen/48x48/actions/edit-paste.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/zoom-in.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/zoom-original.png</file>
+      <file>oxygen-icons/oxygen/48x48/actions/document-save-as.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/edit-select-all.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/view-refresh.png</file>
       <file>oxygen-icons/oxygen/48x48/actions/process-stop.png</file>
@@ -54,6 +56,7 @@
       <file>oxygen-icons/oxygen/22x22/actions/edit-paste.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/zoom-in.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/zoom-original.png</file>
+      <file>oxygen-icons/oxygen/22x22/actions/document-save-as.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/edit-select-all.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/view-refresh.png</file>
       <file>oxygen-icons/oxygen/22x22/actions/process-stop.png</file>
@@ -77,6 +80,7 @@
       <file>oxygen-icons/oxygen/16x16/actions/edit-paste.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/zoom-in.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/zoom-original.png</file>
+      <file>oxygen-icons/oxygen/16x16/actions/document-save-as.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/edit-select-all.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/view-refresh.png</file>
       <file>oxygen-icons/oxygen/16x16/actions/process-stop.png</file>
