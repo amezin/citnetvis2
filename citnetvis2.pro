@@ -11,6 +11,10 @@ greaterThan(QT_MAJOR_VERSION, 4): DEFINES += "QT_DISABLE_DEPRECATED_BEFORE=0"
 
 RESOURCES += "icons.qrc"
 
+CONFIG(release, debug|release) {
+    DEFINES += QT_NO_DEBUG_OUTPUT
+}
+
 TARGET = citnetvis2
 TEMPLATE = app
 
