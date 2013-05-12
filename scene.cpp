@@ -45,7 +45,7 @@ Scene::Scene(QObject *parent) :
     parameters[AdditionalNodeSaturation] = 0.25;
     parameters[AdditionalNodeValue] = 1;
 
-    parameters[FontSize] = 8;
+    parameters[FontSize] = 6;
     parameters[AnimationDuration] = 1;
 
     parameters[LabelPlacementTime] = 0.1;
@@ -490,7 +490,7 @@ void Scene::placeLabels()
     }
 
     QFont font;
-    font.setPixelSize(static_cast<int>(parameters[FontSize]));
+    font.setPointSizeF(parameters[FontSize]);
     QPaintDevice *compatible = 0;
     if (!views().isEmpty()) {
         compatible = static_cast<QPaintDevice*>(views().first());
