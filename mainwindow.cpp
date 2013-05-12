@@ -300,6 +300,7 @@ void MainWindow::exportImage()
 
     QSvgGenerator svg;
     svg.setFileName(exportDialog->selectedFiles().first());
+    svg.setResolution(physicalDpiY());
     svg.setSize(scene->sceneRect().size().toSize());
 
     QPainter painter(&svg);
