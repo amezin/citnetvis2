@@ -12,12 +12,6 @@ Q_GLOBAL_STATIC(Loggers, loggers)
 
 static void messageHandler(QtMsgType type, const char *msg)
 {
-#ifdef QT_NO_DEBUG
-    if (type == QtDebugMsg) {
-        return;
-    }
-#endif
-
     foreach (auto i, *loggers()) {
         i->message(type, msg);
     }
