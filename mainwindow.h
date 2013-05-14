@@ -56,6 +56,7 @@ private:
     QueryEditor *query;
     DataSettingsWidget *settingsWidget;
     NodeInfoWidget *nodeWidget;
+    QDockWidget *nodeDock;
 
     QSettings *settings;
     Dataset *dataset;

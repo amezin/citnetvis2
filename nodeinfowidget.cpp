@@ -30,6 +30,10 @@ void NodeInfoWidget::setEndpoint(const QUrl &url, const SparqlQueryInfo &info)
 
 void NodeInfoWidget::setNode(const QString &subject)
 {
+    if (subject.isEmpty()) {
+        return;
+    }
+
     QString q;
     q.append("SELECT ?p ?o ");
     q.append(info.dataset());

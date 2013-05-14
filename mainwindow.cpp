@@ -108,7 +108,9 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     connect(log, SIGNAL(message()), logDock, SLOT(show()));
 
     nodeWidget = new NodeInfoWidget(this);
-    addDockWidget(nodeWidget, "NodeInfo", "Node Info", Qt::LeftDockWidgetArea);
+    nodeDock = addDockWidget(nodeWidget, "NodeInfo", "Node Info",
+                             Qt::LeftDockWidgetArea);
+    nodeDock->setVisible(false);
 
     dockBars[Qt::TopDockWidgetArea] = addDockBar(Qt::TopToolBarArea);
     dockBars[Qt::BottomDockWidgetArea] = addDockBar(Qt::BottomToolBarArea);
@@ -283,6 +285,7 @@ void MainWindow::showGraph()
 
 void MainWindow::selectedNodeChanged()
 {
+    nodeDock->setVisible(!scene->selectedNode().isEmpty());
     nodeWidget->setNode(scene->selectedNode());
 }
 
