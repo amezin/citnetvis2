@@ -410,65 +410,66 @@ void Scene::build()
     setSceneRect(finalBounds);
 }
 
+typedef void (*LabelPlacement)(QRectF &, const QRectF &);
+
+static void placeLabelBottomRight(QRectF &rect, const QRectF &node)
+{
+    rect.moveTopLeft(node.bottomRight());
+}
+
+static void placeLabelTopRight(QRectF &rect, const QRectF &node)
+{
+    rect.moveBottomLeft(node.topRight());
+}
+
+static void placeLabelBottomLeft(QRectF &rect, const QRectF &node)
+{
+    rect.moveTopRight(node.bottomLeft());
+}
+
+static void placeLabelTopLeft(QRectF &rect, const QRectF &node)
+{
+    rect.moveBottomRight(node.topLeft());
+}
+
+static const auto sqrtOf2 = qSqrt(2);
+
+static void placeLabelLeft(QRectF &rect, const QRectF &node)
+{
+    rect.moveCenter(node.center());
+    rect.moveRight(node.left() + node.width() * (sqrtOf2 - 1) / 2);
+}
+
+static void placeLabelRight(QRectF &rect, const QRectF &node)
+{
+    rect.moveCenter(node.center());
+    rect.moveLeft(node.right() + node.width() * (sqrtOf2 - 1) / 2);
+}
+
+static LabelPlacement placements[] = {
+    placeLabelTopLeft,
+    placeLabelBottomLeft,
+    placeLabelLeft,
+    placeLabelTopRight,
+    placeLabelBottomRight,
+    placeLabelRight
+};
+
 qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)
 {
     QRectF node = nodeRects[n];
 
-    rect.moveTopLeft(node.bottomRight());
+    placements[0](rect, node);
     auto bestRect = rect;
     auto bestResult = tryPlaceLabel(rect);
 
-    rect.moveBottomRight(node.topLeft());
-    auto result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
-    }
-
-    rect.moveBottomLeft(node.topRight());
-    result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
-    }
-
-    rect.moveTopRight(node.bottomLeft());
-    result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
-    }
-
-    rect.moveCenter(node.center());
-    rect.moveTop(node.bottom());
-    result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
-    }
-
-    rect.moveCenter(node.center());
-    rect.moveBottom(node.top());
-    result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
-    }
-
-    rect.moveCenter(node.center());
-    rect.moveRight(node.left());
-    result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
-    }
-
-    rect.moveCenter(node.center());
-    rect.moveLeft(node.right());
-    result = tryPlaceLabel(rect);
-    if (result < bestResult) {
-        bestResult = result;
-        bestRect = rect;
+    for (unsigned i = 1; i < sizeof(placements) / sizeof(*placements); i++) {
+        placements[i](rect, node);
+        auto result = tryPlaceLabel(rect);
+        if (result < bestResult) {
+            bestResult = result;
+            bestRect = rect;
+        }
     }
 
     labelRects.insert(n, bestRect);
@@ -482,7 +483,7 @@ void Scene::placeLabels()
     for (auto l : layers) {
         for (auto n : l) {
             if (n->publication) {
-                auto off = radius(n) / qSqrt(2);
+                auto off = radius(n) / sqrtOf2;
                 QRectF nodeRect(n->x - off, n->y - off, off * 2, off * 2);
                 nodeRects.insert(n, nodeRect);
             }
