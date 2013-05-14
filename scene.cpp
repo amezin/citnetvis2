@@ -439,7 +439,7 @@ static const auto sqrtOf2 = qSqrt(2);
 static void placeLabelLeft(QRectF &rect, const QRectF &node)
 {
     rect.moveCenter(node.center());
-    rect.moveRight(node.left() + node.width() * (sqrtOf2 - 1) / 2);
+    rect.moveRight(node.left() - node.width() * (sqrtOf2 - 1) / 2);
 }
 
 static void placeLabelRight(QRectF &rect, const QRectF &node)
