@@ -15,7 +15,8 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
 
     addSpinBox(Scene::RadiusBase, "&Base radius", 1.0, 100.0);
     addSpinBox(Scene::RadiusK, "&Radius K", 1.0, 100.0);
-    addSpinBox(Scene::Spacing, "&Spacing", 1.0, 100.0);
+    addSpinBox(Scene::VertexSpacing, "&Vertex Spacing", 1.0, 100.0);
+    addSpinBox(Scene::EdgeSpacing, "Edge &spacing", 1.0, 100.0);
     addSpinBox(Scene::MinLayerWidth, "Min. &layer width", 25.0, 1000.0);
     addSpinBox(Scene::MaxEdgeSlope, "Max. &edge slope", 0.5, 5.0);
     addSpinBox(Scene::EdgeThickness, "Edge &thickness", 1.0, 10.0);

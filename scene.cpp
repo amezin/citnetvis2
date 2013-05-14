@@ -33,7 +33,8 @@ Scene::Scene(QObject *parent) :
 
     parameters[RadiusBase] = 5;
     parameters[RadiusK] = 5;
-    parameters[Spacing] = 7;
+    parameters[VertexSpacing] = 10;
+    parameters[EdgeSpacing] = 3;
     parameters[MinLayerWidth] = 75;
     parameters[MaxEdgeSlope] = 3;
     parameters[EdgeThickness] = 2;
@@ -162,7 +163,7 @@ static void computeForces(Scene::Layer &l, bool before, bool after)
 
 bool Scene::applyForces(Scene::Layer &l)
 {
-    const auto eps = parameters[Spacing] / 2;
+    const auto eps = parameters[EdgeSpacing];
 
     auto i = l.begin();
     if (i == l.end()) {
@@ -192,7 +193,8 @@ void Scene::absoluteCoords()
         qreal y = 0;
         for (auto n : l) {
             n->y = y;
-            n->size = 2 * radius(n) + parameters[Spacing];
+            n->size = 2 * radius(n)
+                    + parameters[n->publication ? VertexSpacing : EdgeSpacing];
             y += n->size;
         }
     }

@@ -25,7 +25,7 @@ public:
     {
         RadiusBase,
         RadiusK,
-        Spacing,
+        VertexSpacing,
         MinLayerWidth,
         MaxEdgeSlope,
         EdgeThickness,
@@ -38,6 +38,7 @@ public:
         FontSize,
         AnimationDuration,
         LabelPlacementTime,
+        EdgeSpacing,
 
         NParameters
     };
