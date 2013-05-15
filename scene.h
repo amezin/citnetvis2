@@ -104,8 +104,6 @@ private:
     void addEdgeLine(const VNodeRef &, const VNodeRef &, const QPen &);
     void addLabel(const VNodeRef &, const QPointF &, const QFont &,
                   const QBrush &);
-
-    QRectF finalBounds;
 };
 
 #endif // SCENE_H
