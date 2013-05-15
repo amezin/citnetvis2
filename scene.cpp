@@ -172,8 +172,9 @@ static const qreal msecsPerSec = 1000;
 
 void Scene::applyForces(Scene::Layer &l)
 {
+    bool forward = true;
     for (;;) {
-        for (auto i = l.begin(); i != l.end(); i++) {
+        for (auto i = forward ? l.begin() : l.end() - 1; i != l.end();) {
             (*i)->y = (*i)->newY;
             if (i != l.begin()) {
                 (*i)->y = qMax((*i)->y, (*(i - 1))->y
@@ -183,7 +184,13 @@ void Scene::applyForces(Scene::Layer &l)
                 (*i)->y = qMin((*i)->y, (*(i + 1))->y
                                - ((*(i + 1))->size + (*i)->size) / 2);
             }
+            if (forward) i++;
+            else {
+                if (i == l.begin()) break;
+                i--;
+            }
         }
+        forward = !forward;
 
         bool blockMoved = false;
         auto i = l.begin();
