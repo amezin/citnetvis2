@@ -156,33 +156,60 @@ static void computeForces(Scene::Layer &l, bool before, bool after)
             }
         }
         if (cnt) {
-            n->y = y / cnt;
+            n->newY = y / cnt;
         }
     }
 }
 
-bool Scene::applyForces(Scene::Layer &l)
+static bool collision(const VNodeRef &a, const VNodeRef &b)
 {
-    const auto eps = parameters[EdgeSpacing];
+    auto mindist = (a->size + b->size) / 2;
+    //return qAbs(a->y - b->y) < mindist * 1.1;
+    return a->y + mindist > b->newY || a->newY + mindist > b->y;
+}
 
-    auto i = l.begin();
-    if (i == l.end()) {
-        return false;
-    }
+static const qreal msecsPerSec = 1000;
 
-    bool problem = false;
+void Scene::applyForces(Scene::Layer &l)
+{
     for (;;) {
-        auto bottom = (*i)->y + (*i)->size / 2;
-        auto prev = i;
-        if (++i == l.end()) break;
-        auto top = (*i)->y - (*i)->size / 2;
-        if (bottom > top) {
-            (*i)->y = (top + bottom + (*i)->size) / 2 + eps;
-            (*prev)->y = (top + bottom - (*prev)->size) / 2 - eps;
-            problem = true;
+        for (auto i = l.begin(); i != l.end(); i++) {
+            (*i)->y = (*i)->newY;
+            if (i != l.begin()) {
+                (*i)->y = qMax((*i)->y, (*(i - 1))->y
+                               + ((*(i - 1))->size + (*i)->size) / 2);
+            }
+            if (i + 1 != l.end()) {
+                (*i)->y = qMin((*i)->y, (*(i + 1))->y
+                               - ((*(i + 1))->size + (*i)->size) / 2);
+            }
+        }
+
+        bool blockMoved = false;
+        auto i = l.begin();
+        while (i != l.end()) {
+            qreal common = (*i)->newY - (*i)->y;
+            auto start = i++;
+            int n = 1;
+            while (i != l.end() && collision(*(i - 1), *i)) {
+                common += (*i)->newY - (*i)->y;
+                i++;
+                n++;
+            }
+            common /= n;
+            if (qAbs(common) > 0.1) {
+                blockMoved = true;
+            }
+            while (start != i) {
+                (*start)->newY = (*start)->y + common;
+                start++;
+            }
+        }
+
+        if (!blockMoved) {
+            return;
         }
     }
-    return problem;
 }
 
 void Scene::absoluteCoords()
@@ -192,30 +219,28 @@ void Scene::absoluteCoords()
     for (auto l : layers) {
         qreal y = 0;
         for (auto n : l) {
-            n->y = y;
             n->size = 2 * radius(n)
                     + parameters[n->publication ? VertexSpacing : EdgeSpacing];
+            n->y = y + n->size / 2;
             y += n->size;
         }
     }
 
     for (auto i : layers) {
         computeForces(i, true, false);
-        while (applyForces(i));
+        applyForces(i);
     }
 
-    for (auto i = layers.end(); i != layers.begin();) {
-        --i;
-        computeForces(*i, false, true);
-        while (applyForces(*i));
-    }
+    for (int iter = 0; iter < 5; iter++) {
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            computeForces(*i, false, true);
+            applyForces(*i);
+        }
 
-    for (int iter = 0; iter < 9; iter++) {
         for (auto l : layers) {
             computeForces(l, true, true);
-        }
-        for (auto l : layers) {
-            while (applyForces(l));
+            applyForces(l);
         }
     }
 
@@ -500,7 +525,6 @@ void Scene::placeLabels()
     }
     QFontMetricsF metrics(font, compatible);
 
-    static const qreal ticksPerSec = 1000;
     QElapsedTimer timer;
     timer.start();
     do {
@@ -516,7 +540,7 @@ void Scene::placeLabels()
         if (!change) {
             break;
         }
-    } while (timer.elapsed() / ticksPerSec < parameters[LabelPlacementTime]);
+    } while (timer.elapsed() / msecsPerSec < parameters[LabelPlacementTime]);
 
     for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
         QColor pubColor;

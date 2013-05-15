@@ -26,7 +26,7 @@ struct VNode : public QSharedData
     bool moveable;
 
     QPair<QString, int> currentLayer;
-    qreal x, y, size;
+    qreal x, y, size, newY;
     QString label;
     QColor color;
 };

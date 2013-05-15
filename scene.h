@@ -64,7 +64,7 @@ private:
     void findEdgesInsideLayers();
     void clearAdjacencyData();
     void arrangeToLayers();
-    bool applyForces(Scene::Layer &l);
+    void applyForces(Scene::Layer &l);
     void placeLabels();
     qreal tryPlaceLabel(const QRectF &) const;
     qreal placeLabel(const VNodeRef &n, QRectF rect);
