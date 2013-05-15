@@ -304,10 +304,14 @@ void MainWindow::exportImage()
     QSvgGenerator svg;
     svg.setFileName(exportDialog->selectedFiles().first());
     svg.setResolution(logicalDpiY());
+    scene->finishAnimations();
+    scene->clearSelection();
+    auto prevRect = scene->sceneRect();
+    scene->setSceneRect(scene->itemsBoundingRect());
     svg.setSize(scene->sceneRect().size().toSize());
 
     QPainter painter(&svg);
-    scene->finishAnimations();
-    scene->clearSelection();
     scene->render(&painter);
+
+    scene->setSceneRect(prevRect);
 }
