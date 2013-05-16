@@ -141,6 +141,11 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     exportDialog->setDefaultSuffix("svg");
     exportDialog->setNameFilters(QStringList()
                                  << "SVG images (*.svg)" << "All files (*)");
+
+    statusLabel = new QLabel(this);
+    dockBars[Qt::BottomDockWidgetArea]->addWidget(statusLabel);
+    statusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+    statusLabel->setAlignment(Qt::AlignRight);
 }
 
 QScrollArea *MainWindow::makeScrollable(QWidget *widget)
@@ -281,6 +286,11 @@ void MainWindow::showGraph()
 {
     stopAction->setDisabled(true);
     scene->setDataset(*dataset);
+
+    static const QString infoText("Publications: %1 Edge segments: %2");
+    statusLabel->setText(infoText.arg(
+                             QString::number(scene->publicationCount()),
+                             QString::number(scene->edgeSegmentCount())));
 }
 
 void MainWindow::selectedNodeChanged()

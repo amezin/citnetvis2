@@ -48,6 +48,9 @@ public:
 
     QString selectedNode() const;
 
+    int edgeSegmentCount() const { return edgeLines.size(); }
+    int publicationCount() const { return nodeMarkers.size(); }
+
 public slots:
     void absoluteCoords();
     void build();

@@ -63,6 +63,7 @@ private:
     QAction *stopAction;
     Scene *scene;
     QFileDialog *exportDialog;
+    QLabel *statusLabel;
 };
 
 #endif // MAINWINDOW_H
