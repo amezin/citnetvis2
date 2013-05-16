@@ -13,6 +13,8 @@ NodeInfoWidget::NodeInfoWidget(QWidget *parent) :
 
     title = new QLabel("Select a node", this);
     layout->addWidget(title, 0, 0);
+    title->setTextFormat(Qt::RichText);
+    title->setOpenExternalLinks(true);
 
     auto table = new QTableView(this);
     layout->addWidget(table, 1, 0);
@@ -49,7 +51,8 @@ void NodeInfoWidget::setNode(const QString &subject)
             SLOT(dataArrived(SparqlQuery::Results)));
     query->exec();
 
-    title->setText(subject);
+    static const QString linkFormat("<a href=\"%1\">%1</a>");
+    title->setText(linkFormat.arg(subject));
 }
 
 void NodeInfoWidget::dataArrived(const SparqlQuery::Results &results)
