@@ -20,6 +20,7 @@ NodeInfoWidget::NodeInfoWidget(QWidget *parent) :
     layout->addWidget(table, 1, 0);
 
     model = new QStandardItemModel(this);
+    model->setHorizontalHeaderLabels(QStringList() << "Predicate" << "Object");
     table->setModel(model);
     table->verticalHeader()->setVisible(false);
 }
@@ -44,8 +45,7 @@ void NodeInfoWidget::setNode(const QString &subject)
     q.append("> ?p ?o. }");
     query = QSharedPointer<SparqlQuery>(new SparqlQuery(endpoint, q, this));
 
-    model->clear();
-    model->setHorizontalHeaderLabels(QStringList() << "Predicate" << "Object");
+    model->removeRows(0, model->rowCount());
 
     connect(query.data(), SIGNAL(results(SparqlQuery::Results)),
             SLOT(dataArrived(SparqlQuery::Results)));
