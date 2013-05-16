@@ -276,9 +276,6 @@ void MainWindow::executeQuery()
     connect(dataset, SIGNAL(finished()), SLOT(showGraph()));
     stopAction->setEnabled(true);
 
-    nodeWidget->setEndpoint(settingsWidget->endpointUrl(),
-                            dataset->queryParameters());
-
     view->progressOverlay()->setProgress(0, 0);
 }
 
@@ -291,6 +288,9 @@ void MainWindow::showGraph()
     statusLabel->setText(infoText.arg(
                              QString::number(scene->publicationCount()),
                              QString::number(scene->edgeSegmentCount())));
+
+    nodeWidget->setEndpoint(settingsWidget->endpointUrl(),
+                            dataset->queryParameters());
 }
 
 void MainWindow::selectedNodeChanged()
