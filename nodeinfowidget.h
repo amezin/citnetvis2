@@ -6,6 +6,7 @@
 #include <QSharedPointer>
 #include <QStandardItemModel>
 #include <QLabel>
+#include <QTableView>
 
 #include "sparqlquery.h"
 #include "sparqlqueryinfo.h"
@@ -23,14 +24,20 @@ public slots:
 
 private slots:
     void dataArrived(const SparqlQuery::Results &);
+    void selectionChanged();
+    void copyTriggered();
+    void itemDoubleClicked(QModelIndex);
 
 private:
     QSharedPointer<SparqlQuery> query;
     QStandardItemModel *model;
+    QTableView *table;
     QLabel *title;
 
     QUrl endpoint;
     SparqlQueryInfo info;
+
+    QAction *copyAction;
 };
 
 #endif // NODEINFOWIDGET_H
