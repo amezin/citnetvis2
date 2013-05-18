@@ -308,6 +308,7 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
         return;
     }
     QRectF rect(n->x - r, n->y - r, r * 2, r * 2);
+    finalBounds = finalBounds.united(rect);
 
     QSharedPointer<QGraphicsEllipseItem> ptr;
     auto found = oldNodeMarkers.find(n->publication);
@@ -340,6 +341,9 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
                         const QPen &pen)
 {
     QLineF line(start->x, start->y, end->x, end->y);
+    finalBounds = finalBounds.united(QRectF(qMin(line.x1(), line.x2()),
+                                            qMin(line.y1(), line.y2()),
+                                            qAbs(line.dx()), qAbs(line.dy())));
     auto key = qMakePair(start, end);
     QSharedPointer<QGraphicsLineItem> ptr;
     auto found = oldEdgeLines.find(key);
@@ -424,6 +428,8 @@ void Scene::build()
     edgeLines.swap(oldEdgeLines);
     nodeMarkers.swap(oldNodeMarkers);
 
+    finalBounds = QRectF();
+
     for (auto l : layers) {
         for (auto n : l) {
             if (n->publication) {
@@ -454,6 +460,8 @@ void Scene::build()
     animateItems(oldLabels, labels, this);
     animateItems(oldEdgeLines, edgeLines, this);
     animateItems(oldNodeMarkers, nodeMarkers, this);
+
+    setSceneRect(finalBounds);
 }
 
 typedef void (*LabelPlacement)(QRectF &, const QRectF &);
@@ -565,6 +573,7 @@ void Scene::placeLabels()
         QColor pubColor;
         pubColor.setHsvF(n.key()->color.hueF(), parameters[TextSaturation],
                          parameters[TextValue]);
+        finalBounds = finalBounds.united(labelRects[n.key()]);
         addLabel(n.key(), labelRects[n.key()].topLeft(), font, pubColor);
     }
 }
