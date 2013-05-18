@@ -46,7 +46,7 @@ Scene::Scene(QObject *parent) :
     parameters[AdditionalNodeSaturation] = 0.25;
     parameters[AdditionalNodeValue] = 1;
 
-    parameters[FontSize] = 6;
+    parameters[FontSize] = 7;
     parameters[AnimationDuration] = 1;
 
     parameters[LabelPlacementTime] = 0.1;
