@@ -233,20 +233,42 @@ void Scene::absoluteCoords()
         }
     }
 
-    for (auto i : layers) {
-        computeForces(i, true, false);
-        applyForces(i);
+    for (int iter = 0; iter < 2; iter++) {
+        for (auto i : layers) {
+            computeForces(i, true, false);
+            applyForces(i);
+        }
+
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            computeForces(*i, false, true);
+            applyForces(*i);
+        }
     }
 
-    for (auto i = layers.end(); i != layers.begin();) {
-        --i;
-        computeForces(*i, false, true);
-        applyForces(*i);
+    for (int iter = 0; iter < 2; iter++) {
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            computeForces(*i, false, true);
+            applyForces(*i);
+        }
+
+        for (auto l : layers) {
+            computeForces(l, true, true);
+            applyForces(l);
+        }
     }
 
+    auto minY = std::numeric_limits<qreal>::max();
     for (auto l : layers) {
-        computeForces(l, true, true);
-        applyForces(l);
+        for (auto n : l) {
+            minY = qMin(minY, n->y);
+        }
+    }
+    for (auto l : layers) {
+        for (auto n : l) {
+            n->y -= minY;
+        }
     }
 
     qreal x = 0;
