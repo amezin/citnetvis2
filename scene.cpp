@@ -772,29 +772,28 @@ void Scene::addEdge(const Publication &a, const Publication &b)
     }
 }
 
-static QVector<int> sortedNeighbors(const VNodeRef &n, bool side)
-{
-    QVector<int> result;
-    result.reserve(n->neighbors.size());
-    foreach (auto i, n->neighbors) {
-        if (i->indexInLayer >= 0 && side == (i->currentLayer < n->currentLayer))
-        {
-            result.append(i->indexInLayer);
-        }
-    }
-
-    return result;
-}
-
 static int intersectionNumber(const VNodeRef &a, const VNodeRef &b, bool side)
 {
     int result = 0;
 
-    auto bNeighbors = sortedNeighbors(b, side);
+    static QVector<int> bNeighbors;
+    bNeighbors.resize(0);
+    for (auto i = b->neighbors.begin(); i != b->neighbors.end(); i++) {
+        if ((*i)->indexInLayer >= 0
+                && side == ((*i)->currentLayer < b->currentLayer))
+        {
+            bNeighbors.push_back((*i)->indexInLayer);
+        }
+    }
     qSort(bNeighbors.begin(), bNeighbors.end());
-    foreach (auto i, sortedNeighbors(a, side)) {
-        auto found = qLowerBound(bNeighbors, i);
-        result += found - bNeighbors.constBegin();
+
+    for (auto i = a->neighbors.begin(); i != a->neighbors.end(); i++) {
+        if ((*i)->indexInLayer >= 0
+                && side == ((*i)->currentLayer < a->currentLayer))
+        {
+            auto found = qLowerBound(bNeighbors, (*i)->indexInLayer);
+            result += found - bNeighbors.constBegin();
+        }
     }
 
     return result;
