@@ -249,7 +249,7 @@ void Scene::absoluteCoords()
     for (int iter = 0; iter < 2; iter++) {
         for (auto i = layers.end(); i != layers.begin();) {
             --i;
-            computeForces(*i, false, true);
+            computeForces(*i, true, true);
             applyForces(*i);
         }
 
