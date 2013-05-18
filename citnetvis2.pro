@@ -19,6 +19,8 @@ TARGET = citnetvis2
 TEMPLATE = app
 
 QMAKE_CXXFLAGS += -std=c++0x
+QMAKE_CXXFLAGS_DEBUG += -pg
+QMAKE_LFLAGS_DEBUG += -pg
 
 SOURCES += main.cpp\
         mainwindow.cpp \
