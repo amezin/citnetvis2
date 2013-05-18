@@ -238,17 +238,15 @@ void Scene::absoluteCoords()
         applyForces(i);
     }
 
-    for (int iter = 0; iter < 5; iter++) {
-        for (auto i = layers.end(); i != layers.begin();) {
-            --i;
-            computeForces(*i, false, true);
-            applyForces(*i);
-        }
+    for (auto i = layers.end(); i != layers.begin();) {
+        --i;
+        computeForces(*i, false, true);
+        applyForces(*i);
+    }
 
-        for (auto l : layers) {
-            computeForces(l, true, true);
-            applyForces(l);
-        }
+    for (auto l : layers) {
+        computeForces(l, true, true);
+        applyForces(l);
     }
 
     qreal x = 0;
