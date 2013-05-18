@@ -83,19 +83,17 @@ QueryEditor::QueryEditor(QWidget *parent)
     fileDialog = new QFileDialog(this);
     fontDialog = new QFontDialog(this);
 
-    textEdit->setPlainText("PREFIX akt:\t<http://www.aktors.org/ontology/portal#>\n"
+    textEdit->setPlainText("PREFIX akt:	<http://www.aktors.org/ontology/portal#>\n"
+                           "PREFIX date: <http://www.aktors.org/ontology/date#>\n"
+                           "PREFIX author: <http://acm.rkbexplorer.com/id/person->\n"
                            "SELECT DISTINCT ?publication\n"
                            "WHERE {\n"
-                           "\t?publication akt:addresses-generic-area-of-interest ?i1.\n"
+                           "\t?publication akt:has-author author:220302-ef0e2c969b9d385cdc71c37caf476013\n"
+                           "\t?publication akt:has-date ?date\n"
                            "\tFILTER (\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2> ||\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#I.2.8.3> ||\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.0> ||\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.1> ||\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.2> ||\n"
-                           "\t\t?i1 = <http://acm.rkbexplorer.com/ontologies/acm#G.2.2.5>\n"
+                           "\t\t?date >= date:1990-01-01\n"
                            "\t)\n"
-                           "} LIMIT 5");
+                           "}");
 }
 
 void QueryEditor::load()
