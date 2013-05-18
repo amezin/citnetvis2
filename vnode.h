@@ -1,7 +1,7 @@
 #ifndef VNODE_H
 #define VNODE_H
 
-#include <QSet>
+#include <QVector>
 #include <QPair>
 #include <QExplicitlySharedDataPointer>
 #include <QSharedData>
@@ -18,7 +18,7 @@ struct VNode : public QSharedData
 
     Identifier publication, edgeStart, edgeEnd;
 
-    QSet<VNodeRef> neighbors;
+    QVector<VNodeRef> neighbors;
     QHash<VNodeRef, QColor> edgeColors;
     int indexInLayer;
 

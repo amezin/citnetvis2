@@ -753,9 +753,9 @@ void Scene::addEdge(const Publication &a, const Publication &b)
         }
 
         if (prev) {
-            prev->neighbors.insert(*found);
+            prev->neighbors.push_back(*found);
             prev->edgeColors[*found] = publicationInfo[b.iri()].color;
-            (*found)->neighbors.insert(prev);
+            (*found)->neighbors.push_back(prev);
             (*found)->edgeColors[prev] = publicationInfo[b.iri()].color;
         }
 
