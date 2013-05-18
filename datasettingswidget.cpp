@@ -26,4 +26,8 @@ DataSettingsWidget::DataSettingsWidget(QWidget *parent) :
                                         "akt:cites-publication-reference",
                                         this);
     layout->addRow("\"&Cites\" predicate", referenceEdit);
+
+    recursiveCheck = new PersistentCheck("Recursive", this);
+    recursiveCheck->setValue(true);
+    layout->addRow("Show a layer of &references", recursiveCheck);
 }

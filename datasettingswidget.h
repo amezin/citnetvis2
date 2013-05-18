@@ -4,6 +4,7 @@
 #include <QWidget>
 
 #include "persistentfield.h"
+#include "persistentcheck.h"
 
 class DataSettingsWidget : public QWidget
 {
@@ -16,10 +17,12 @@ public:
     QString dateRegEx() const { return dateRegExEdit->text(); }
     QString titlePredicate() const { return titleEdit->text(); }
     QString referencePredicate() const { return referenceEdit->text(); }
+    bool loadReferences() const { return recursiveCheck->value(); }
 
 private:
     PersistentField *endpointUrlEdit, *dateEdit, *titleEdit, *referenceEdit,
     *dateRegExEdit;
+    PersistentCheck *recursiveCheck;
 };
 
 #endif // DATASETTINGSWIDGET_H

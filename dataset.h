@@ -17,7 +17,8 @@ public:
     explicit Dataset(const QUrl &endpointUrl, const QString &query,
                      const QString &hasDate, const QString &hasTitle,
                      const QString &citesPublicationReference,
-                     const QString &dateRegEx, QObject *parent = 0);
+                     const QString &dateRegEx, bool loadRecursive,
+                     QObject *parent = 0);
 
     bool isFinished() const
     {
@@ -73,6 +74,8 @@ private:
 
     QHash<Identifier, Publication> currentPublications;
     QSet<Identifier> dataReceivedFor;
+
+    bool loadRecursive;
 
     friend struct CacheInfo;
 };

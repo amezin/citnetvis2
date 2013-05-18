@@ -266,7 +266,8 @@ void MainWindow::executeQuery()
                           settingsWidget->datePredicate(),
                           settingsWidget->titlePredicate(),
                           settingsWidget->referencePredicate(),
-                          settingsWidget->dateRegEx(), this);
+                          settingsWidget->dateRegEx(),
+                          settingsWidget->loadReferences(), this);
 
     connect(dataset, SIGNAL(progress(int,int)), view->progressOverlay(),
             SLOT(setProgress(int,int)));

@@ -42,7 +42,8 @@ SOURCES += main.cpp\
     labelanimation.cpp \
     opacityanimation.cpp \
     disappearanimation.cpp \
-    nodeinfowidget.cpp
+    nodeinfowidget.cpp \
+    persistentcheck.cpp
 
 HEADERS  += mainwindow.h \
     queryeditor.h \
@@ -69,4 +70,5 @@ HEADERS  += mainwindow.h \
     labelanimation.h \
     opacityanimation.h \
     disappearanimation.h \
-    nodeinfowidget.h
+    nodeinfowidget.h \
+    persistentcheck.h

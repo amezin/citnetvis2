@@ -38,9 +38,11 @@ Q_GLOBAL_STATIC(PublicationCache, cache)
 Dataset::Dataset(const QUrl &endpointUrl, const QString &query,
                  const QString &hasDate, const QString &hasTitle,
                  const QString &citesPublicationReference,
-                 const QString &dateRegEx, QObject *parent)
+                 const QString &dateRegEx, bool loadRecursive,
+                 QObject *parent)
     : QObject(parent), endpoint(endpointUrl),
-      queryInfo(&query), dateSubstring(dateRegEx), errorSet(false)
+      queryInfo(&query), dateSubstring(dateRegEx), errorSet(false),
+      loadRecursive(loadRecursive)
 {
     if (!endpointUrl.isValid()) setError("Invalid endpoint URL");
 
@@ -195,8 +197,10 @@ void Dataset::addPublications(const SparqlQuery::Results &results)
         auto found = queryPublication(Identifier(i.begin().value()), true);
         if (!found->recurse) {
             found->recurse = true;
-            foreach (auto ref, found->references) {
-                queryPublication(ref);
+            if (loadRecursive) {
+                foreach (auto ref, found->references) {
+                    queryPublication(ref);
+                }
             }
         }
     }
@@ -275,7 +279,7 @@ void Dataset::addProperties(const SparqlQuery::Results &results)
             Identifier ref(i[object]);
             j->references.insert(ref);
 
-            if (j->recurse) {
+            if (j->recurse && loadRecursive) {
                 queryPublication(ref);
             }
         } else {
