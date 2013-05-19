@@ -157,6 +157,8 @@ static void computeForces(Scene::Layer &l, bool before, bool after)
         }
         if (cnt) {
             n->newY = y / cnt;
+        } else {
+            n->newY = n->y;
         }
     }
 }
