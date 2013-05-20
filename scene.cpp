@@ -825,7 +825,7 @@ void Scene::addEdge(const Publication &a, const Publication &b)
     }
 }
 
-static int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
+inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
 {
     int result = 0;
     for (auto &i : a) {
