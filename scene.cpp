@@ -831,19 +831,20 @@ static int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
     return result;
 }
 
-static void sortedNeighbors(const VNodeRef &n, QVector<int> &l, QVector<int> &r)
+static void sortedNeighbors(const VNodeRef &n)
 {
-    l.resize(0);
-    r.resize(0);
+    n->leftNeighborIndices.resize(0);
+    n->rightNeighborIndices.resize(0);
     for (auto &i : n->neighbors) {
         if (i->indexInLayer < 0) {
             continue;
         }
-        ((i->currentLayer < n->currentLayer) ? l : r)
+        ((i->currentLayer < n->currentLayer) ? n->leftNeighborIndices
+                                             : n->rightNeighborIndices)
                 .push_back(i->indexInLayer);
     }
-    qSort(l);
-    qSort(r);
+    qSort(n->leftNeighborIndices);
+    qSort(n->rightNeighborIndices);
 }
 
 void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
@@ -860,14 +861,12 @@ void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
 
     qStableSort(toInsert.begin(), toInsert.end(), VNodeRef::DegreeGreater());
 
-    QHash<VNodeRef, QVector<int> > sortedL;
-    QHash<VNodeRef, QVector<int> > sortedR;
     for (auto &j : layer) {
-        sortedNeighbors(j, sortedL[j], sortedR[j]);
+        sortedNeighbors(j);
     }
 
     for (auto &i : toInsert) {
-        sortedNeighbors(i, sortedL[i], sortedR[i]);
+        sortedNeighbors(i);
 
         int left = 0;
         int right = 0;
@@ -877,18 +876,16 @@ void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
         auto bestLeft = left;
         auto bestRight = right;
 
-        auto l_i = sortedL.find(i);
-        auto r_i = sortedR.find(i);
-
         while (j != layer.end()) {
-            auto l_j = sortedL.find(*j);
-            auto r_j = sortedR.find(*j);
+            left -= intersectionNumber(i->leftNeighborIndices,
+                                       (*j)->leftNeighborIndices);
+            left += intersectionNumber((*j)->leftNeighborIndices,
+                                       i->leftNeighborIndices);
 
-            left -= intersectionNumber(*l_i, *l_j);
-            left += intersectionNumber(*l_j, *l_i);
-
-            right -= intersectionNumber(*r_i, *r_j);
-            right += intersectionNumber(*r_j, *r_i);
+            right -= intersectionNumber(i->rightNeighborIndices,
+                                        (*j)->rightNeighborIndices);
+            right += intersectionNumber((*j)->rightNeighborIndices,
+                                        i->rightNeighborIndices);
 
             if ((left + right) < (bestLeft + bestRight) ||
                     ((left + right) == (bestLeft + bestRight) &&

@@ -29,6 +29,8 @@ struct VNode : public QSharedData
     qreal x, y, size, newY;
     QString label;
     QColor color;
+
+    QVector<int> leftNeighborIndices, rightNeighborIndices;
 };
 
 struct VNodeRef : public QExplicitlySharedDataPointer<VNode>
