@@ -828,8 +828,12 @@ void Scene::addEdge(const Publication &a, const Publication &b)
 inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
 {
     int result = 0;
-    for (auto &i : a) {
-        result += qLowerBound(b, i) - b.constBegin();
+    int j = 0;
+    for (int i = 0; i < a.size(); i++) {
+        while (j < b.size() && b[j] < a[i]) {
+            j++;
+        }
+        result += j;
     }
     return result;
 }
