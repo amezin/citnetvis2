@@ -29,7 +29,7 @@ DataSettingsWidget::DataSettingsWidget(QWidget *parent) :
 
     recursiveCheck = new PersistentCheck("Recursive", this);
     recursiveCheck->setValue(true);
-    layout->addRow("Show a layer of &references", recursiveCheck);
+    layout->addRow("Show &referenced nodes", recursiveCheck);
 
     isolatedCheck = new PersistentCheck("ShowIsolated", this);
     isolatedCheck->setValue(true);
