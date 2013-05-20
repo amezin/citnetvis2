@@ -50,6 +50,7 @@ Scene::Scene(QObject *parent) :
     parameters[AnimationDuration] = 1;
 
     parameters[LabelPlacementTime] = 0.1;
+    parameters[AbsoluteCoordsTime] = 0.2;
 }
 
 void Scene::setDataset(const Dataset &ds, bool showIsolated)
@@ -251,7 +252,9 @@ void Scene::absoluteCoords()
         applyForces(*i);
     }
 
-    for (int iter = 0; iter < 16; iter++) {
+    QElapsedTimer timer;
+    timer.start();
+    do {
         for (auto &l : layers) {
             computeForces(l, true, true);
             applyForces(l);
@@ -262,7 +265,7 @@ void Scene::absoluteCoords()
             computeForces(*i, true, true);
             applyForces(*i);
         }
-    }
+    } while (timer.elapsed() / msecsPerSec < parameters[AbsoluteCoordsTime]);
 
     auto minY = std::numeric_limits<qreal>::max();
     for (auto &l : layers) {

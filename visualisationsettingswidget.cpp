@@ -35,6 +35,8 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
                "Referenced node color value", 0.0, 1.0);
 
     addSpinBox(Scene::LabelPlacementTime, "Label placement timeout", 0.0, 1.0);
+    addSpinBox(Scene::AbsoluteCoordsTime, "Timeout for for force-based algo",
+               0.0, 10.0);
 }
 
 void VisualisationSettingsWidget::updateSceneParameters()

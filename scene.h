@@ -39,6 +39,7 @@ public:
         AnimationDuration,
         LabelPlacementTime,
         EdgeSpacing,
+        AbsoluteCoordsTime,
 
         NParameters
     };
