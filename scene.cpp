@@ -68,8 +68,8 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
 
     clearAdjacencyData();
 
-    foreach (auto i, publications) {
-        foreach (auto j, i.references) {
+    for (auto &i : publications) {
+        for (auto &j : i.references) {
             if (i.iri() == j) {
                 continue;
             }
@@ -109,9 +109,9 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
 
     int totalNodes = 0;
     int totalEdges = 0;
-    foreach (auto l, layers) {
+    for (auto &l : layers) {
         totalNodes += l.size();
-        foreach (auto n, l) {
+        for (auto &n : l) {
             Q_ASSERT(n->indexInLayer >= 0);
             totalEdges += n->neighbors.size();
         }
@@ -139,7 +139,7 @@ qreal Scene::radius(const VNodeRef &p) const
 qreal Scene::minLayerWidth(const VNodeRef &p, bool prev) const
 {
     qreal w = p->size;
-    for (auto n : p->neighbors) {
+    for (auto &n : p->neighbors) {
         if ((n->currentLayer < p->currentLayer) == prev) {
             w = qMax(w, qAbs(p->y - n->y) / parameters[MaxEdgeSlope]);
         }
@@ -149,10 +149,10 @@ qreal Scene::minLayerWidth(const VNodeRef &p, bool prev) const
 
 static void computeForces(Scene::Layer &l, bool before, bool after)
 {
-    for (auto n : l) {
+    for (auto &n : l) {
         int cnt = 0;
         qreal y = 0;
-        for (auto r : n->neighbors) {
+        for (auto &r : n->neighbors) {
             if (((r->currentLayer < n->currentLayer) == before) ||
                     ((r->currentLayer > n->currentLayer) == after))
             {
@@ -230,9 +230,9 @@ void Scene::absoluteCoords()
 {
     qDebug() << "Called" << __FUNCTION__;
 
-    for (auto l : layers) {
+    for (auto &l : layers) {
         qreal y = 0;
-        for (auto n : l) {
+        for (auto &n : l) {
             n->size = 2 * radius(n)
                     + parameters[n->publication ? VertexSpacing : EdgeSpacing];
             n->y = y + n->size / 2;
@@ -240,7 +240,7 @@ void Scene::absoluteCoords()
         }
     }
 
-    for (auto i : layers) {
+    for (auto &i : layers) {
         computeForces(i, true, false);
         applyForces(i);
     }
@@ -252,7 +252,7 @@ void Scene::absoluteCoords()
     }
 
     for (int iter = 0; iter < 16; iter++) {
-        for (auto l : layers) {
+        for (auto &l : layers) {
             computeForces(l, true, true);
             applyForces(l);
         }
@@ -265,30 +265,30 @@ void Scene::absoluteCoords()
     }
 
     auto minY = std::numeric_limits<qreal>::max();
-    for (auto l : layers) {
-        for (auto n : l) {
+    for (auto &l : layers) {
+        for (auto &n : l) {
             minY = qMin(minY, n->y);
         }
     }
-    for (auto l : layers) {
-        for (auto n : l) {
+    for (auto &l : layers) {
+        for (auto &n : l) {
             n->y -= minY;
         }
     }
 
     qreal x = 0;
     for (auto l = layers.begin(); l != layers.end(); l++) {
-        for (auto n : *l) {
+        for (auto &n : *l) {
             n->x = x;
         }
 
         auto width = parameters[MinLayerWidth];
-        for (auto n : *l) {
+        for (auto &n : *l) {
             width = qMax(width, minLayerWidth(n, false));
         }
         auto next = l;
         if (++next != layers.end()) {
-            for (auto n : *next) {
+            for (auto &n : *next) {
                 width = qMax(width, minLayerWidth(n, true));
             }
         }
@@ -435,8 +435,8 @@ void Scene::build()
 
     finalBounds = QRectF();
 
-    for (auto l : layers) {
-        for (auto n : l) {
+    for (auto &l : layers) {
+        for (auto &n : l) {
             if (n->publication) {
                 QColor color(n->color);
                 if (!publications.find(n->publication)->recurse) {
@@ -446,7 +446,7 @@ void Scene::build()
                 }
                 addNodeMarker(n, radius(n), color);
             }
-            for (auto r : n->neighbors) {
+            for (auto &r : n->neighbors) {
                 if (n->currentLayer > r->currentLayer) {
                     continue;
                 }
@@ -539,8 +539,8 @@ void Scene::placeLabels()
 {
     labelRects.clear();
     nodeRects.clear();
-    for (auto l : layers) {
-        for (auto n : l) {
+    for (auto &l : layers) {
+        for (auto &n : l) {
             if (n->publication) {
                 auto off = radius(n) / sqrtOf2;
                 QRectF nodeRect(n->x - off, n->y - off, off * 2, off * 2);
@@ -587,7 +587,7 @@ qreal Scene::tryPlaceLabel(const QRectF &rect) const
 {
     qreal result = 0;
 
-    foreach (auto r, labelRects) {
+    for (auto &r : labelRects) {
         QRectF intersection = rect.intersect(r);
         result += intersection.size().width() * intersection.size().height();
     }
@@ -610,7 +610,7 @@ int Scene::computeSubLevel(const Identifier &p, QSet<Identifier> &inStack)
 
     int maxSubLevel = 0;
 
-    foreach (auto i, inLayerEdges[p]) {
+    for (auto &i : inLayerEdges[p]) {
         if (inStack.contains(i)) {
             qWarning() << "Cycle with (" << p << ',' << i << ")";
             continue;
@@ -631,7 +631,7 @@ void Scene::arrangeToLayers()
 
     QSet<LayerId> usedLayers;
     QSet<Identifier> inStack;
-    foreach (auto i, publications) {
+    for (auto &i : publications) {
         LayerId layer(i.date, computeSubLevel(i.iri(), inStack));
         if (!layers.contains(layer)) {
             layers.insert(layer, Layer());
@@ -647,7 +647,7 @@ void Scene::arrangeToLayers()
     }
 
     int maxSubLevel = 0;
-    foreach (auto i, subLevels) {
+    for (auto i : subLevels) {
         maxSubLevel = qMax(maxSubLevel, i);
     }
     qDebug() << "Max subLevel:" << maxSubLevel;
@@ -667,8 +667,8 @@ void Scene::clearAdjacencyData()
 void Scene::findEdgesInsideLayers()
 {
     inLayerEdges.clear();
-    foreach (auto i, publications) {
-        foreach (auto j, i.references) {
+    for (auto &i : publications) {
+        for (auto &j : i.references) {
             auto k = publications.find(j);
             if (k == publications.end()) {
                 continue;
@@ -695,7 +695,7 @@ void Scene::fixPublicationInfoAndDate()
         if (changeDate) {
             qWarning() << "No date for publication" << i->iri();
         }
-        foreach (auto j, i->references) {
+        for (auto &j : i->references) {
             auto k = publications.find(j);
             if (k != publications.end()) {
                 if (changeDate) {
@@ -712,7 +712,7 @@ void Scene::fixPublicationInfoAndDate()
     }
 
     for (auto i = publications.begin(); i != publications.end(); i++) {
-        foreach (auto j, i->references) {
+        for (auto &j : i->references) {
             auto k = publications.find(j);
             if (k != publications.end()) {
                 if (noDate.contains(k.key()) && !i->date.isEmpty() &&
@@ -820,7 +820,7 @@ void Scene::addEdge(const Publication &a, const Publication &b)
 static int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
 {
     int result = 0;
-    for (auto i : a) {
+    for (auto &i : a) {
         result += qLowerBound(b, i) - b.constBegin();
     }
     return result;
@@ -830,7 +830,7 @@ static void sortedNeighbors(const VNodeRef &n, QVector<int> &l, QVector<int> &r)
 {
     l.resize(0);
     r.resize(0);
-    for (auto i : n->neighbors) {
+    for (auto &i : n->neighbors) {
         if (i->indexInLayer < 0) {
             continue;
         }
@@ -857,11 +857,11 @@ void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
 
     QHash<VNodeRef, QVector<int> > sortedL;
     QHash<VNodeRef, QVector<int> > sortedR;
-    for (auto j : layer) {
+    for (auto &j : layer) {
         sortedNeighbors(j, sortedL[j], sortedR[j]);
     }
 
-    foreach (auto i, toInsert) {
+    for (auto &i : toInsert) {
         sortedNeighbors(i, sortedL[i], sortedR[i]);
 
         int left = 0;
@@ -905,7 +905,7 @@ void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
     for (auto i = layer.begin(); i != layer.end(); i++) {
         if (requireSortedNeighbors && (*i)->indexInLayer < 0) {
             bool skip = false;
-            foreach (auto j, (*i)->neighbors) {
+            for (auto &j : (*i)->neighbors) {
                 if (j->indexInLayer < 0) {
                     skip = true;
                     break;
