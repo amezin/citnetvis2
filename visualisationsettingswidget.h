@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
+#include <QSet>
 
 #include "scene.h"
 #include "persistentwidget.h"
@@ -28,6 +29,8 @@ private:
     QDoubleSpinBox *spinBox[Scene::NParameters];
     QFormLayout *layout;
     bool blockUpdates;
+
+    QSet<int> changesColor, changesSize, changesLabel;
 };
 
 #endif // VISUALISATIONSETTINGSWIDGET_H

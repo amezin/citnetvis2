@@ -14,34 +14,50 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     }
 
     addSpinBox(Scene::RadiusBase, "&Base radius", 1.0, 100.0);
+    changesSize.insert(Scene::RadiusBase);
     addSpinBox(Scene::RadiusK, "&Radius K", 1.0, 100.0);
+    changesSize.insert(Scene::RadiusK);
     addSpinBox(Scene::VertexSpacing, "&Vertex Spacing", 1.0, 100.0);
+    changesSize.insert(Scene::VertexSpacing);
     addSpinBox(Scene::EdgeSpacing, "Edge &spacing", 1.0, 100.0);
+    changesSize.insert(Scene::EdgeSpacing);
     addSpinBox(Scene::MinLayerWidth, "Min. &layer width", 25.0, 1000.0);
+    changesSize.insert(Scene::MinLayerWidth);
     addSpinBox(Scene::MaxEdgeSlope, "Max. &edge slope", 0.5, 5.0);
+    changesSize.insert(Scene::MaxEdgeSlope);
     addSpinBox(Scene::EdgeThickness, "Edge &thickness", 1.0, 10.0);
+    changesSize.insert(Scene::EdgeThickness);
+
     addSpinBox(Scene::FontSize, "&Font size", 5.0, 32.0);
-    addSpinBox(Scene::AnimationDuration, "&Animation duration", 0.1, 5.0);
+    changesLabel.insert(Scene::FontSize);
 
     addSpinBox(Scene::EdgeSaturation, "Edge color saturation", 0.0, 1.0);
+    changesColor.insert(Scene::EdgeSaturation);
     addSpinBox(Scene::EdgeValue, "Edge color value", 0.0, 1.0);
+    changesColor.insert(Scene::EdgeValue);
 
     addSpinBox(Scene::TextSaturation, "Text color saturation", 0.0, 1.0);
+    changesLabel.insert(Scene::TextSaturation);
     addSpinBox(Scene::TextValue, "Text color value", 0.0, 1.0);
+    changesLabel.insert(Scene::TextValue);
 
     addSpinBox(Scene::AdditionalNodeSaturation,
                "Referenced node color saturation", 0.0, 1.0);
+    changesColor.insert(Scene::AdditionalNodeSaturation);
     addSpinBox(Scene::AdditionalNodeValue,
                "Referenced node color value", 0.0, 1.0);
+    changesColor.insert(Scene::AdditionalNodeValue);
 
     addSpinBox(Scene::LabelPlacementTime, "Label placement timeout", 0.0, 1.0);
     addSpinBox(Scene::AbsoluteCoordsTime, "Timeout for for force-based algo",
                0.0, 10.0);
+
+    addSpinBox(Scene::AnimationDuration, "&Animation duration", 0.1, 5.0);
 }
 
 void VisualisationSettingsWidget::updateSceneParameters()
 {
-    bool changed = false;
+    bool changedColor = false, changedLabels = false, changedSize = false;
 
     for (int i = 0; i < Scene::NParameters; i++) {
         if (!spinBox[i]) {
@@ -49,13 +65,30 @@ void VisualisationSettingsWidget::updateSceneParameters()
         }
         if (!sender() || sender() == spinBox[i]) {
             auto value = static_cast<qreal>(spinBox[i]->value());
-            changed = changed || (scene->parameters[i] != value);
+            if (scene->parameters[i] != value) {
+                changedColor = changedColor || changesColor.contains(i);
+                changedLabels = changedLabels || changesLabel.contains(i);
+                changedSize = changedSize || changesSize.contains(i);
+            }
             scene->parameters[i] = value;
         }
     }
 
-    if (changed && !blockUpdates) {
+    if (blockUpdates) {
+        return;
+    }
+
+    if (changedSize) {
         scene->absoluteCoords();
+        return;
+    }
+
+    if (changedLabels) {
+        scene->placeLabels();
+    }
+
+    if (changedColor) {
+        scene->build();
     }
 }
 
@@ -85,7 +118,7 @@ void VisualisationSettingsWidget::loadState(const QSettings *settings)
     }
 
     blockUpdates = false;
-    updateSceneParameters();
+    scene->absoluteCoords();
 }
 
 void VisualisationSettingsWidget::addSpinBox(Scene::Parameter p,

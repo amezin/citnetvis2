@@ -52,7 +52,7 @@ public:
     int edgeSegmentCount() const { return edgeLines.size(); }
     int publicationCount() const { return nodeMarkers.size(); }
 
-public slots:
+    void placeLabels();
     void absoluteCoords();
     void build();
     void finishAnimations();
@@ -70,7 +70,6 @@ private:
     void clearAdjacencyData();
     void arrangeToLayers();
     void applyForces(Scene::Layer &l);
-    void placeLabels();
     qreal tryPlaceLabel(const QRectF &) const;
     qreal placeLabel(const VNodeRef &n, QRectF rect);
 
