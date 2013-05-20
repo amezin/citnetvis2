@@ -18,11 +18,12 @@ public:
     QString titlePredicate() const { return titleEdit->text(); }
     QString referencePredicate() const { return referenceEdit->text(); }
     bool loadReferences() const { return recursiveCheck->value(); }
+    bool showIsolated() const { return isolatedCheck->value(); }
 
 private:
     PersistentField *endpointUrlEdit, *dateEdit, *titleEdit, *referenceEdit,
     *dateRegExEdit;
-    PersistentCheck *recursiveCheck;
+    PersistentCheck *recursiveCheck, *isolatedCheck;
 };
 
 #endif // DATASETTINGSWIDGET_H

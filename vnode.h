@@ -40,13 +40,9 @@ struct VNodeRef : public QExplicitlySharedDataPointer<VNode>
         return *this;
     }
 
-    VNodeRef(const VNode &n) : QExplicitlySharedDataPointer<VNode>(new VNode(n))
+    explicit VNodeRef(const VNode &n)
+        : QExplicitlySharedDataPointer<VNode>(new VNode(n))
     {
-    }
-    VNodeRef &operator =(const VNode &n)
-    {
-        VNodeRef ref(new VNode(n));
-        return *this = ref;
     }
 
     struct IndexInLayerLess

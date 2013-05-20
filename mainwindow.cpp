@@ -283,7 +283,7 @@ void MainWindow::executeQuery()
 void MainWindow::showGraph()
 {
     stopAction->setDisabled(true);
-    scene->setDataset(*dataset);
+    scene->setDataset(*dataset, settingsWidget->showIsolated());
 
     static const QString infoText("Publications: %1 Edge segments: %2");
     statusLabel->setText(infoText.arg(
@@ -303,7 +303,7 @@ void MainWindow::selectedNodeChanged()
 void MainWindow::clear()
 {
     dataset->clear();
-    scene->setDataset(*dataset);
+    scene->setDataset(*dataset, false);
 }
 
 void MainWindow::exportImage()

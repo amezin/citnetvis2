@@ -52,7 +52,7 @@ Scene::Scene(QObject *parent) :
     parameters[LabelPlacementTime] = 0.1;
 }
 
-void Scene::setDataset(const Dataset &ds)
+void Scene::setDataset(const Dataset &ds, bool showIsolated)
 {
     if (ds.hasError()) {
         return;
@@ -79,6 +79,11 @@ void Scene::setDataset(const Dataset &ds)
                 continue;
             }
             addEdge(i, *k);
+        }
+        if (showIsolated) {
+            VNode expected;
+            expected.publication = i.iri();
+            insertNode(expected, LayerId(i.date, subLevels[i.iri()]));
         }
     }
 
@@ -748,6 +753,37 @@ void Scene::removeOldNodes()
     qDebug() << "Removed" << n << "nodes";
 }
 
+VNodeRef Scene::insertNode(VNode expected, const LayerId &layerId)
+{
+    if (expected.publication) {
+        expected.color = publicationInfo[expected.publication].color;
+        expected.label =
+                publications.find(expected.publication)->nonEmptyTitle();
+    }
+    expected.currentLayer = layerId;
+
+    auto &layer = layers[layerId];
+    auto found = layer.constBegin();
+    while (found != layer.constEnd()) {
+        if ((*found)->publication == expected.publication &&
+                (*found)->edgeStart == expected.edgeStart &&
+                (*found)->edgeEnd == expected.edgeEnd)
+            break;
+        found++;
+    }
+
+    if (found == layer.constEnd()) {
+        VNodeRef expectedRef(expected);
+        layer.prepend(expectedRef);
+        return expectedRef;
+    } else {
+        (*found)->color = expected.color;
+        (*found)->label = expected.label;
+        (*found)->updated = true;
+        return *found;
+    }
+}
+
 void Scene::addEdge(const Publication &a, const Publication &b)
 {
     LayerId aLayer(a.date, subLevels[a.iri()]);
@@ -759,47 +795,25 @@ void Scene::addEdge(const Publication &a, const Publication &b)
     VNodeRef prev;
     for (auto i = startIter; i != endIter; i++)
     {
-        VNodeRef expected = VNode();
+        VNode expected;
         if (i.key() == aLayer) {
-            expected->publication = a.iri();
+            expected.publication = a.iri();
         } else if (i.key() == bLayer) {
-            expected->publication = b.iri();
+            expected.publication = b.iri();
         } else {
-            expected->edgeStart = a.iri();
-            expected->edgeEnd = b.iri();
+            expected.edgeStart = a.iri();
+            expected.edgeEnd = b.iri();
         }
-
-        auto found = i->constBegin();
-        while (found != i->constEnd()) {
-            if ((*found)->publication == expected->publication &&
-                    (*found)->edgeStart == expected->edgeStart &&
-                    (*found)->edgeEnd == expected->edgeEnd)
-                break;
-            found++;
-        }
-        if (found == i->constEnd()) {
-            expected->currentLayer = i.key();
-            i->prepend(expected);
-            found = i->begin();
-        }
+        auto found(insertNode(expected, i.key()));
 
         if (prev) {
-            prev->neighbors.push_back(*found);
-            prev->edgeColors[*found] = publicationInfo[b.iri()].color;
-            (*found)->neighbors.push_back(prev);
-            (*found)->edgeColors[prev] = publicationInfo[b.iri()].color;
+            prev->neighbors.push_back(found);
+            prev->edgeColors[found] = publicationInfo[b.iri()].color;
+            found->neighbors.push_back(prev);
+            found->edgeColors[prev] = publicationInfo[b.iri()].color;
         }
 
-        if (i.key() == aLayer) {
-            (*found)->color = publicationInfo[a.iri()].color;
-            (*found)->label = a.nonEmptyTitle();
-        } else if (i.key() == bLayer) {
-            (*found)->color = publicationInfo[b.iri()].color;
-            (*found)->label = b.nonEmptyTitle();
-        }
-
-        (*found)->updated = true;
-        prev = *found;
+        prev = found;
     }
 }
 

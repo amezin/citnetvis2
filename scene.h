@@ -19,7 +19,7 @@ class Scene : public QGraphicsScene
 public:
     explicit Scene(QObject *parent = 0);
     
-    void setDataset(const Dataset &);
+    void setDataset(const Dataset &, bool showIsolated);
 
     enum Parameter
     {
@@ -61,6 +61,7 @@ private:
 
     int computeSubLevel(const Identifier &p, QSet<Identifier> &inStack);
 
+    VNodeRef insertNode(VNode expected, const LayerId &layer);
     void addEdge(const Publication &a, const Publication &b);
     void removeOldNodes();
     void fixPublicationInfoAndDate();
