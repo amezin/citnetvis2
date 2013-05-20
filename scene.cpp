@@ -246,15 +246,17 @@ void Scene::absoluteCoords()
         applyForces(*i);
     }
 
-    for (auto l : layers) {
-        computeForces(l, true, true);
-        applyForces(l);
-    }
+    for (int iter = 0; iter < 16; iter++) {
+        for (auto l : layers) {
+            computeForces(l, true, true);
+            applyForces(l);
+        }
 
-    for (auto i = layers.end(); i != layers.begin();) {
-        --i;
-        computeForces(*i, true, true);
-        applyForces(*i);
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            computeForces(*i, true, true);
+            applyForces(*i);
+        }
     }
 
     auto minY = std::numeric_limits<qreal>::max();
