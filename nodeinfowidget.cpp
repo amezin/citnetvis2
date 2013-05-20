@@ -59,7 +59,7 @@ void NodeInfoWidget::setNode(const QString &subject)
     q.append(" WHERE { <");
     q.append(subject);
     q.append("> ?p ?o. }");
-    query = QSharedPointer<SparqlQuery>(new SparqlQuery(endpoint, q, this));
+    query = QSharedPointer<SparqlQuery>(new SparqlQuery(endpoint, q));
 
     model->removeRows(0, model->rowCount());
 
