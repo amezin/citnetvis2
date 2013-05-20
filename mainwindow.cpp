@@ -96,11 +96,10 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     addDockWidget(query, "QueryEditor", "Query editor");
 
     settingsWidget = new DataSettingsWidget(this);
-    addDockWidget(makeScrollable(settingsWidget), "DataSettings",
-                  "SPARQL settings");
+    addDockWidget(makeScrollable(settingsWidget), "DataSettings", "Settings");
 
     addDockWidget(makeScrollable(new VisualisationSettingsWidget(scene, this)),
-                  "VisSettings", "Visualisation settings");
+                  "VisSettings", "Size and color");
 
     log = new LogWidget(this);
     auto logDock = addDockWidget(log, "Log", "Errors and warnings");
