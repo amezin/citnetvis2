@@ -551,6 +551,11 @@ void Scene::placeLabels()
 
     QFont font;
     font.setPointSizeF(parameters[FontSize]);
+
+    QFontInfo fontInfo(font);
+    qDebug() << "Font family:" << fontInfo.family();
+    font.setFamily(fontInfo.family());
+
     QPaintDevice *compatible = 0;
     if (!views().isEmpty()) {
         compatible = static_cast<QPaintDevice*>(views().first());
