@@ -417,7 +417,6 @@ void Scene::finishAnimations()
         auto anim = qobject_cast<QAbstractAnimation *>(p);
         if (anim) {
             anim->setCurrentTime(anim->totalDuration());
-            anim->stop();
             delete anim;
         }
     }
