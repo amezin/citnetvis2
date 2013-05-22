@@ -94,7 +94,7 @@ private:
 
     QHash<Identifier, PublicationInfo> publicationInfo;
 
-    void sortNodes(Layer &, bool requireSortedNeighbors = true);
+    void sortNodes(Layer &, bool layerLess, bool requireSortedNeighbors = true);
 
     QMap<LayerId, Layer> layers;
 

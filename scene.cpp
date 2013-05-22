@@ -88,20 +88,17 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
 
     auto i = layers.begin();
     while (i != layers.end()) {
-        sortNodes(*i++);
-    }
-    while (i != layers.begin()) {
-        sortNodes(*(--i));
-    }
-
-    while (i != layers.end()) {
-        sortNodes(*i++, false);
+        sortNodes(*i++, true);
     }
     while (i != layers.begin()) {
         sortNodes(*(--i), false);
     }
+
     while (i != layers.end()) {
-        sortNodes(*i++, false);
+        sortNodes(*i++, true, false);
+    }
+    while (i != layers.begin()) {
+        sortNodes(*(--i), false, false);
     }
 
     int totalNodes = 0;
@@ -866,68 +863,81 @@ inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
     return result;
 }
 
-static void sortedNeighbors(const VNodeRef &n)
+static void sortedNeighbors(const VNodeRef &n, bool layerLess)
 {
-    n->leftNeighborIndices.resize(0);
-    n->rightNeighborIndices.resize(0);
+    n->neighborIndices.resize(0);
+    n->nNeighbors = 0;
     for (auto &i : n->neighbors) {
-        if (i->indexInLayer < 0) {
+        if ((i->currentLayer < n->currentLayer) != layerLess) {
             continue;
         }
-        ((i->currentLayer < n->currentLayer) ? n->leftNeighborIndices
-                                             : n->rightNeighborIndices)
-                .push_back(i->indexInLayer);
-    }
-    qSort(n->leftNeighborIndices);
-    qSort(n->rightNeighborIndices);
-}
-
-void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
-{
-    QMutableLinkedListIterator<VNodeRef> moveable(layer);
-    QVector<VNodeRef> toInsert;
-    toInsert.reserve(layer.size());
-    while (moveable.hasNext()) {
-        if (moveable.next()->moveable) {
-            toInsert.append(moveable.value());
-            moveable.remove();
+        n->nNeighbors++;
+        if (i->indexInLayer >= 0) {
+            n->neighborIndices.push_back(i->indexInLayer);
         }
     }
+    qSort(n->neighborIndices);
+}
 
-    qStableSort(toInsert.begin(), toInsert.end(), VNodeRef::DegreeGreater());
-
-    for (auto &j : layer) {
-        sortedNeighbors(j);
+void Scene::sortNodes(Layer &layer, bool layerLess, bool requireSortedNeighbors)
+{
+    for (auto &n : layer) {
+        sortedNeighbors(n, layerLess);
+        n->sorted = false;
     }
 
-    for (auto &i : toInsert) {
-        sortedNeighbors(i);
+    auto i = layer.begin();
+    while (i != layer.end() && (*i)->indexInLayer < 0) {
+        auto j = i;
+        while (j != layer.begin()) {
+            if ((*(j - 1))->neighbors.size() <= (*i)->neighbors.size()) {
+                break;
+            }
+            --j;
+        }
 
-        int left = 0;
-        int right = 0;
+        layer.insert(j, *i);
+        i = layer.erase(i);
+    }
+
+    i = layer.begin();
+    while (i != layer.end()) {
+        if ((*i)->sorted) {
+            i++;
+            continue;
+        }
+        if (requireSortedNeighbors) {
+            if ((*i)->neighborIndices.size() < (*i)->nNeighbors) {
+                i++;
+                continue;
+            }
+        }
+        (*i)->sorted = true;
+        if (!(*i)->moveable) {
+            i++;
+            continue;
+        }
+
+        int intersections = 0;
 
         auto j = layer.begin();
         auto best = j;
-        auto bestLeft = left;
-        auto bestRight = right;
+        auto bestIntersections = intersections;
 
         while (j != layer.end()) {
-            left -= intersectionNumber(i->leftNeighborIndices,
-                                       (*j)->leftNeighborIndices);
-            left += intersectionNumber((*j)->leftNeighborIndices,
-                                       i->leftNeighborIndices);
+            if (j == i || (*i)->indexInLayer < 0) {
+                ++j;
+                continue;
+            }
 
-            right -= intersectionNumber(i->rightNeighborIndices,
-                                        (*j)->rightNeighborIndices);
-            right += intersectionNumber((*j)->rightNeighborIndices,
-                                        i->rightNeighborIndices);
+            intersections -= intersectionNumber((*i)->neighborIndices,
+                                                (*j)->neighborIndices);
+            intersections += intersectionNumber((*j)->neighborIndices,
+                                                (*i)->neighborIndices);
 
-            if ((left + right) < (bestLeft + bestRight) ||
-                    ((left + right) == (bestLeft + bestRight) &&
-                     qMin(left, right) < qMin(bestLeft, bestRight)))
+            if (intersections < bestIntersections)
             {
-                bestLeft = left;
-                bestRight = right;
+                bestIntersections = intersections;
                 best = j;
                 ++best;
             }
@@ -935,24 +945,18 @@ void Scene::sortNodes(Layer &layer, bool requireSortedNeighbors)
             ++j;
         }
 
-        layer.insert(best, i);
+        while (best != layer.end() && (*best)->indexInLayer < 0) {
+            best++;
+        }
+
+        layer.insert(best, *i);
+        i = layer.erase(i);
     }
 
     int idx = 0;
-    for (auto i = layer.begin(); i != layer.end(); i++) {
-        if (requireSortedNeighbors && (*i)->indexInLayer < 0) {
-            bool skip = false;
-            for (auto &j : (*i)->neighbors) {
-                if (j->indexInLayer < 0) {
-                    skip = true;
-                    break;
-                }
-            }
-
-            if (skip) {
-                continue;
-            }
+    for (auto &n : layer) {
+        if (n->sorted) {
+            n->indexInLayer = idx++;
         }
-        (*i)->indexInLayer = idx++;
     }
 }

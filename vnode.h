@@ -10,7 +10,8 @@
 
 #include "identifier.h"
 
-struct VNodeRef;
+struct VNode;
+typedef QExplicitlySharedDataPointer<VNode> VNodeRef;
 
 struct VNode : public QSharedData
 {
@@ -24,44 +25,15 @@ struct VNode : public QSharedData
 
     bool updated;
     bool moveable;
+    bool sorted;
 
     QPair<QString, int> currentLayer;
     qreal x, y, size, newY;
     QString label;
     QColor color;
 
-    QVector<int> leftNeighborIndices, rightNeighborIndices;
-};
-
-struct VNodeRef : public QExplicitlySharedDataPointer<VNode>
-{
-    VNodeRef(VNode *ptr = 0) : QExplicitlySharedDataPointer<VNode>(ptr) { }
-    VNodeRef &operator =(VNode *ptr)
-    {
-        *static_cast<QExplicitlySharedDataPointer<VNode> *>(this) = ptr;
-        return *this;
-    }
-
-    explicit VNodeRef(const VNode &n)
-        : QExplicitlySharedDataPointer<VNode>(new VNode(n))
-    {
-    }
-
-    struct IndexInLayerLess
-    {
-        bool operator ()(const VNodeRef &a, const VNodeRef &b)
-        {
-            return a->indexInLayer < b->indexInLayer;
-        }
-    };
-
-    struct DegreeGreater
-    {
-        bool operator ()(const VNodeRef &a, const VNodeRef &b)
-        {
-            return a->neighbors.size() > b->neighbors.size();
-        }
-    };
+    QVector<int> neighborIndices;
+    int nNeighbors;
 };
 
 inline uint qHash(const VNodeRef &ref)
