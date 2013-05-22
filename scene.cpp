@@ -29,8 +29,6 @@ Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 Scene::Scene(QObject *parent) :
     QGraphicsScene(parent)
 {
-    setItemIndexMethod(QGraphicsScene::NoIndex);
-
     parameters[RadiusBase] = 5;
     parameters[RadiusK] = 5;
     parameters[VertexSpacing] = 10;
@@ -302,12 +300,13 @@ void Scene::absoluteCoords()
     build();
 }
 
-static void runAnim(QVariantAnimation *anim)
+static QVariantAnimation *runAnim(QVariantAnimation *anim)
 {
     auto scene = qobject_cast<Scene *>(anim->parent());
     anim->setDuration(static_cast<int>(
                           scene->parameters[Scene::AnimationDuration] * 1000));
     anim->start(QAbstractAnimation::DeleteWhenStopped);
+    return anim;
 }
 
 void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
@@ -324,7 +323,7 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
         ptr = *found;
         ptr->setBrush(color);
         if (ptr->rect() != rect) {
-            runAnim(new NodeAnimation(ptr.data(), rect, this));
+            disableBSP(runAnim(new NodeAnimation(ptr.data(), rect, this)));
         }
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
@@ -359,7 +358,7 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
         ptr = *found;
         ptr->setPen(pen);
         if (ptr->line() != line) {
-            runAnim(new LineAnimation(ptr.data(), line, this));
+            disableBSP(runAnim(new LineAnimation(ptr.data(), line, this)));
         }
     } else {
         ptr = QSharedPointer<QGraphicsLineItem>(addLine(line, pen));
@@ -382,7 +381,7 @@ void Scene::addLabel(const VNodeRef &n, const QPointF &pos, const QFont &font,
         ptr->setFont(font);
         ptr->setText(n->label);
         if (ptr->pos() != pos) {
-            runAnim(new LabelAnimation(ptr.data(), pos, this));
+            disableBSP(runAnim(new LabelAnimation(ptr.data(), pos, this)));
         }
     } else {
         ptr = QSharedPointer<QGraphicsSimpleTextItem>(
@@ -425,6 +424,29 @@ void Scene::finishAnimations()
             anim->stop();
             delete anim;
         }
+    }
+}
+
+void Scene::disableBSP(QAbstractAnimation *anim)
+{
+    if (itemIndexMethod() != QGraphicsScene::NoIndex) {
+        qDebug() << "Disabling BSP";
+        setItemIndexMethod(QGraphicsScene::NoIndex);
+    }
+
+    runningAnimations.insert(anim);
+    connect(anim, SIGNAL(destroyed()), SLOT(animationFinished()));
+}
+
+void Scene::animationFinished()
+{
+    runningAnimations.remove(reinterpret_cast<QAbstractAnimation*>(sender()));
+
+    if (runningAnimations.isEmpty() &&
+            itemIndexMethod() != QGraphicsScene::BspTreeIndex)
+    {
+        qDebug() << "Enabling BSP";
+        setItemIndexMethod(QGraphicsScene::BspTreeIndex);
     }
 }
 

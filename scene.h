@@ -9,6 +9,7 @@
 #include <QGraphicsEllipseItem>
 #include <QLinkedList>
 #include <QVariantAnimation>
+#include <QSet>
 
 #include "dataset.h"
 #include "vnode.h"
@@ -57,7 +58,12 @@ public:
     void build();
     void finishAnimations();
 
+private slots:
+    void animationFinished();
+
 private:
+    void disableBSP(QAbstractAnimation *);
+
     typedef QPair<QString, int> LayerId;
 
     int computeSubLevel(const Identifier &p, QSet<Identifier> &inStack);
@@ -110,6 +116,8 @@ private:
                   const QBrush &);
 
     QRectF finalBounds;
+
+    QSet<QAbstractAnimation*> runningAnimations;
 };
 
 #endif // SCENE_H
