@@ -304,7 +304,8 @@ static QVariantAnimation *runAnim(QVariantAnimation *anim)
 {
     auto scene = qobject_cast<Scene *>(anim->parent());
     anim->setDuration(static_cast<int>(
-                          scene->parameters[Scene::AnimationDuration] * 1000));
+                          scene->parameters[Scene::AnimationDuration]
+                      * msecsPerSec));
     anim->start(QAbstractAnimation::DeleteWhenStopped);
     return anim;
 }
