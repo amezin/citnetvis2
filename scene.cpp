@@ -80,9 +80,7 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
             addEdge(i, *k);
         }
         if (showIsolated) {
-            VNode expected;
-            expected.publication = i.iri();
-            insertNode(expected, LayerId(i.date, subLevels[i.iri()]));
+            insertNode(i.iri(), LayerId(i.date, subLevels[i.iri()]));
         }
     }
 
@@ -784,32 +782,41 @@ void Scene::removeOldNodes()
     qDebug() << "Removed" << n << "nodes";
 }
 
-VNodeRef Scene::insertNode(VNode expected, const LayerId &layerId)
+VNodeRef Scene::insertNode(Identifier publication, const LayerId &layerId,
+                           Identifier edgeStart, Identifier edgeEnd)
 {
-    if (expected.publication) {
-        expected.color = publicationInfo[expected.publication].color;
-        expected.label =
-                publications.find(expected.publication)->nonEmptyTitle();
+    QColor color;
+    QString label;
+    if (publication) {
+        color = publicationInfo[publication].color;
+        label = publications.find(publication)->nonEmptyTitle();
     }
-    expected.currentLayer = layerId;
 
     auto &layer = layers[layerId];
     auto found = layer.constBegin();
     while (found != layer.constEnd()) {
-        if ((*found)->publication == expected.publication &&
-                (*found)->edgeStart == expected.edgeStart &&
-                (*found)->edgeEnd == expected.edgeEnd)
+        if ((*found)->publication == publication &&
+                (*found)->edgeStart == edgeStart &&
+                (*found)->edgeEnd == edgeEnd)
             break;
         found++;
     }
 
     if (found == layer.constEnd()) {
-        VNodeRef expectedRef(expected);
+        VNodeRef expectedRef(new VNode());
+        if (publication) {
+            expectedRef->color = color;
+            expectedRef->label = label;
+            expectedRef->publication = publication;
+        }
+        expectedRef->edgeStart = edgeStart;
+        expectedRef->edgeEnd = edgeEnd;
+        expectedRef->currentLayer = layerId;
         layer.prepend(expectedRef);
         return expectedRef;
     } else {
-        (*found)->color = expected.color;
-        (*found)->label = expected.label;
+        (*found)->color = color;
+        (*found)->label = label;
         (*found)->updated = true;
         return *found;
     }
@@ -826,16 +833,14 @@ void Scene::addEdge(const Publication &a, const Publication &b)
     VNodeRef prev;
     for (auto i = startIter; i != endIter; i++)
     {
-        VNode expected;
+        VNodeRef found;
         if (i.key() == aLayer) {
-            expected.publication = a.iri();
+            found = insertNode(a.iri(), i.key());
         } else if (i.key() == bLayer) {
-            expected.publication = b.iri();
+            found = insertNode(b.iri(), i.key());
         } else {
-            expected.edgeStart = a.iri();
-            expected.edgeEnd = b.iri();
+            found = insertNode(Identifier(), i.key(), a.iri(), b.iri());
         }
-        auto found(insertNode(expected, i.key()));
 
         if (prev) {
             prev->neighbors.push_back(found);

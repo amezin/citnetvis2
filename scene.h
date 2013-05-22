@@ -68,7 +68,9 @@ private:
 
     int computeSubLevel(const Identifier &p, QSet<Identifier> &inStack);
 
-    VNodeRef insertNode(VNode expected, const LayerId &layer);
+    VNodeRef insertNode(Identifier publication, const LayerId &layerId,
+                        Identifier edgeStart = Identifier(),
+                        Identifier edgeEnd = Identifier());
     void addEdge(const Publication &a, const Publication &b);
     void removeOldNodes();
     void fixPublicationInfoAndDate();
