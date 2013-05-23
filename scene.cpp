@@ -546,8 +546,9 @@ void Scene::build()
             auto border = (yearMaxX[*(i - 1)] + yearMinX[*i]) / 2;
             auto &line = yearLines[*i];
             if (line.isNull()) {
-                line = QSharedPointer<QGraphicsLineItem>(
-                            new QGraphicsLineItem(0, this));
+                line = QSharedPointer<QGraphicsLineItem>
+                        (new QGraphicsLineItem());
+                addItem(line.data());
             }
             line->setLine(border, finalBounds.top(),
                           border, finalBounds.bottom());
@@ -556,11 +557,12 @@ void Scene::build()
             yearBorders[*i] = border;
         }
         yearCenters[*i] = (yearMaxX[*i] + yearMinX[*i]) / 2;
-        if (!yearLabels.contains(*i)) {
-            yearLabels.insert(*i, QSharedPointer<QGraphicsSimpleTextItem>(
-                                  new QGraphicsSimpleTextItem(0, this)));
-        }
         auto &label = yearLabels[*i];
+        if (label.isNull()) {
+            label = QSharedPointer<QGraphicsSimpleTextItem>(
+                        new QGraphicsSimpleTextItem());
+            addItem(label.data());
+        }
         label->setText(*i);
         label->setFont(font);
         label->setPos(yearCenters[*i] - metrics.width(*i) / 2,
