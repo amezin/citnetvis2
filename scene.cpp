@@ -278,6 +278,7 @@ void Scene::absoluteCoords()
         }
     }
 
+    labelRects.clear();
     build();
     placeLabels();
 }
@@ -570,6 +571,9 @@ void Scene::build()
     animateItems(oldEdgeLines, edgeLines, this);
     animateItems(oldNodeMarkers, nodeMarkers, this);
 
+    for (auto &r : labelRects) {
+        finalBounds = finalBounds.united(r);
+    }
     setSceneRect(finalBounds);
 }
 
