@@ -23,6 +23,7 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     changesSize.insert(Scene::EdgeSpacing);
     addSpinBox(Scene::MinLayerWidth, "Min. &layer width", 25.0, 1000.0);
     changesColor.insert(Scene::MinLayerWidth);
+    changesLabel.insert(Scene::MinLayerWidth);
     addSpinBox(Scene::MaxEdgeSlope, "Max. &edge slope", 0.5, 5.0);
     changesSize.insert(Scene::MaxEdgeSlope);
     addSpinBox(Scene::EdgeThickness, "Edge &thickness", 1.0, 10.0);
@@ -51,6 +52,13 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     addSpinBox(Scene::LabelPlacementTime, "Label placement timeout", 0.0, 1.0);
     addSpinBox(Scene::AbsoluteCoordsTime, "Timeout for for force-based algo",
                0.0, 10.0);
+
+    addSpinBox(Scene::YearFontSize, "Font size for year labels", 5.0, 32.0);
+    changesColor.insert(Scene::YearFontSize);
+    addSpinBox(Scene::YearLineAlpha, "Year labels/lines opacity", 0.0, 1.0);
+    changesColor.insert(Scene::YearLineAlpha);
+    addSpinBox(Scene::YearLineWidth, "Year lines width", 0.1, 10.0);
+    changesColor.insert(Scene::YearLineWidth);
 
     addSpinBox(Scene::AnimationDuration, "&Animation duration", 0.1, 5.0);
 }
@@ -83,12 +91,12 @@ void VisualisationSettingsWidget::updateSceneParameters()
         return;
     }
 
-    if (changedLabels) {
-        scene->placeLabels();
-    }
-
     if (changedColor) {
         scene->build();
+    }
+
+    if (changedLabels) {
+        scene->placeLabels();
     }
 }
 
