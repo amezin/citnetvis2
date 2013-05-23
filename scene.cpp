@@ -272,27 +272,8 @@ void Scene::absoluteCoords()
         }
     }
 
-    qreal x = 0;
-    for (auto l = layers.begin(); l != layers.end(); l++) {
-        for (auto &n : *l) {
-            n->x = x;
-        }
-
-        auto width = parameters[MinLayerWidth];
-        for (auto &n : *l) {
-            width = qMax(width, minLayerWidth(n, false));
-        }
-        auto next = l;
-        if (++next != layers.end()) {
-            for (auto &n : *next) {
-                width = qMax(width, minLayerWidth(n, true));
-            }
-        }
-
-        x += width;
-    }
-
     build();
+    placeLabels();
 }
 
 static QVariantAnimation *runAnim(QVariantAnimation *anim)
@@ -447,9 +428,28 @@ void Scene::animationFinished()
 
 void Scene::build()
 {
+    qreal x = 0;
+    for (auto l = layers.begin(); l != layers.end(); l++) {
+        for (auto &n : *l) {
+            n->x = x;
+        }
+
+        auto width = parameters[MinLayerWidth];
+        for (auto &n : *l) {
+            width = qMax(width, minLayerWidth(n, false));
+        }
+        auto next = l;
+        if (++next != layers.end()) {
+            for (auto &n : *next) {
+                width = qMax(width, minLayerWidth(n, true));
+            }
+        }
+
+        x += width;
+    }
+
     finishAnimations();
 
-    labels.swap(oldLabels);
     edgeLines.swap(oldEdgeLines);
     nodeMarkers.swap(oldNodeMarkers);
 
@@ -480,9 +480,6 @@ void Scene::build()
         }
     }
 
-    placeLabels();
-
-    animateItems(oldLabels, labels, this);
     animateItems(oldEdgeLines, edgeLines, this);
     animateItems(oldNodeMarkers, nodeMarkers, this);
 
@@ -557,6 +554,8 @@ qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)
 
 void Scene::placeLabels()
 {
+    labels.swap(oldLabels);
+
     labelRects.clear();
     nodeRects.clear();
     for (auto &l : layers) {
@@ -606,6 +605,10 @@ void Scene::placeLabels()
         finalBounds = finalBounds.united(labelRects[n.key()]);
         addLabel(n.key(), labelRects[n.key()].topLeft(), font, pubColor);
     }
+
+    animateItems(oldLabels, labels, this);
+
+    setSceneRect(finalBounds);
 }
 
 qreal Scene::tryPlaceLabel(const QRectF &rect) const

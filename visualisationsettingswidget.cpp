@@ -22,7 +22,7 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     addSpinBox(Scene::EdgeSpacing, "Edge &spacing", 1.0, 100.0);
     changesSize.insert(Scene::EdgeSpacing);
     addSpinBox(Scene::MinLayerWidth, "Min. &layer width", 25.0, 1000.0);
-    changesSize.insert(Scene::MinLayerWidth);
+    changesColor.insert(Scene::MinLayerWidth);
     addSpinBox(Scene::MaxEdgeSlope, "Max. &edge slope", 0.5, 5.0);
     changesSize.insert(Scene::MaxEdgeSlope);
     addSpinBox(Scene::EdgeThickness, "Edge &thickness", 1.0, 10.0);
