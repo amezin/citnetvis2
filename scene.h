@@ -10,6 +10,8 @@
 #include <QLinkedList>
 #include <QVariantAnimation>
 #include <QSet>
+#include <QStringList>
+#include <QFontMetricsF>
 
 #include "dataset.h"
 #include "vnode.h"
@@ -41,6 +43,9 @@ public:
         LabelPlacementTime,
         EdgeSpacing,
         AbsoluteCoordsTime,
+        YearLineAlpha,
+        YearLineWidth,
+        YearFontSize,
 
         NParameters
     };
@@ -91,6 +96,7 @@ private:
     qreal radius(const PublicationInfo &) const;
     qreal radius(const VNodeRef &) const;
     qreal minLayerWidth(const VNodeRef &p, bool prev) const;
+    QFontMetricsF fontWithMetrics(QFont &);
 
     QHash<Identifier, PublicationInfo> publicationInfo;
 
@@ -120,6 +126,13 @@ private:
     QRectF finalBounds;
 
     QSet<QAbstractAnimation*> runningAnimations;
+
+    QStringList differentYears;
+    QHash<QString, qreal> yearBorders;
+    QHash<QString, qreal> yearCenters;
+
+    QHash<QString, QSharedPointer<QGraphicsLineItem> > yearLines;
+    QHash<QString, QSharedPointer<QGraphicsSimpleTextItem> > yearLabels;
 };
 
 #endif // SCENE_H

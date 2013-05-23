@@ -49,6 +49,12 @@ Scene::Scene(QObject *parent) :
 
     parameters[LabelPlacementTime] = 0.1;
     parameters[AbsoluteCoordsTime] = 0.2;
+
+    parameters[YearLineAlpha] = 0.2;
+    parameters[YearLineWidth] = 1;
+    parameters[YearFontSize] = 10;
+
+    setBackgroundBrush(QColor::fromRgbF(1, 1, 1));
 }
 
 void Scene::setDataset(const Dataset &ds, bool showIsolated)
@@ -426,9 +432,24 @@ void Scene::animationFinished()
     }
 }
 
+QFontMetricsF Scene::fontWithMetrics(QFont &font)
+{
+    QFontInfo fontInfo(font);
+    font.setFamily(fontInfo.family());
+
+    QPaintDevice *compatible = 0;
+    if (!views().isEmpty()) {
+        compatible = static_cast<QPaintDevice*>(views().first());
+    }
+    return QFontMetricsF(font, compatible);
+}
+
 void Scene::build()
 {
     qreal x = 0;
+    QHash<QString, qreal> yearMinX;
+    QHash<QString, qreal> yearMaxX;
+    differentYears.clear();
     for (auto l = layers.begin(); l != layers.end(); l++) {
         for (auto &n : *l) {
             n->x = x;
@@ -443,6 +464,16 @@ void Scene::build()
             for (auto &n : *next) {
                 width = qMax(width, minLayerWidth(n, true));
             }
+        }
+
+        auto &date = l.key().first;
+        if (l == layers.begin() || (l - 1).key().first != date) {
+            differentYears.append(l.key().first);
+            yearMinX[date] = x;
+            yearMaxX[date] = x;
+        } else {
+            yearMinX[date] = qMin(yearMinX[date], x);
+            yearMaxX[date] = qMax(yearMaxX[date], x);
         }
 
         x += width;
@@ -478,6 +509,62 @@ void Scene::build()
                 addEdgeLine(n, r, edgePen);
             }
         }
+    }
+
+    yearBorders.clear();
+    QMutableHashIterator<QString, QSharedPointer<QGraphicsLineItem> >
+            yearLineIter(yearLines);
+    while (yearLineIter.hasNext()) {
+        if (qLowerBound(differentYears, yearLineIter.next().key())
+                == differentYears.end())
+        {
+            yearLineIter.remove();
+        }
+    }
+    QMutableHashIterator<QString, QSharedPointer<QGraphicsSimpleTextItem> >
+            yearLabelIter(yearLabels);
+    while (yearLabelIter.hasNext()) {
+        if (qLowerBound(differentYears, yearLabelIter.next().key())
+                == differentYears.end())
+        {
+            yearLabelIter.remove();
+        }
+    }
+    QColor bg(backgroundBrush().color().toRgb());
+    QColor yearColor = QColor::fromRgbF(1 - bg.redF(), 1 - bg.greenF(),
+                                        1 - bg.blueF(),
+                                        parameters[YearLineAlpha]);
+    QPen yearPen(yearColor, parameters[YearLineWidth]);
+
+    QFont font;
+    font.setPointSizeF(parameters[YearFontSize]);
+    auto metrics(fontWithMetrics(font));
+
+    for (auto i = differentYears.begin(); i != differentYears.end(); i++) {
+        if (i != differentYears.begin()) {
+            auto border = (yearMaxX[*(i - 1)] + yearMinX[*i]) / 2;
+            auto &line = yearLines[*i];
+            if (line.isNull()) {
+                line = QSharedPointer<QGraphicsLineItem>(
+                            new QGraphicsLineItem(0, this));
+            }
+            line->setLine(border, finalBounds.top(),
+                          border, finalBounds.bottom());
+            line->setPen(yearPen);
+            line->setZValue(-5);
+            yearBorders[*i] = border;
+        }
+        yearCenters[*i] = (yearMaxX[*i] + yearMinX[*i]) / 2;
+        if (!yearLabels.contains(*i)) {
+            yearLabels.insert(*i, QSharedPointer<QGraphicsSimpleTextItem>(
+                                  new QGraphicsSimpleTextItem(0, this)));
+        }
+        auto &label = yearLabels[*i];
+        label->setText(*i);
+        label->setFont(font);
+        label->setPos(yearCenters[*i] - metrics.width(*i) / 2,
+                finalBounds.top());
+        label->setBrush(yearColor);
     }
 
     animateItems(oldEdgeLines, edgeLines, this);
@@ -570,16 +657,7 @@ void Scene::placeLabels()
 
     QFont font;
     font.setPointSizeF(parameters[FontSize]);
-
-    QFontInfo fontInfo(font);
-    qDebug() << "Font family:" << fontInfo.family();
-    font.setFamily(fontInfo.family());
-
-    QPaintDevice *compatible = 0;
-    if (!views().isEmpty()) {
-        compatible = static_cast<QPaintDevice*>(views().first());
-    }
-    QFontMetricsF metrics(font, compatible);
+    auto metrics(fontWithMetrics(font));
 
     QElapsedTimer timer;
     timer.start();
