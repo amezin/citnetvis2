@@ -138,6 +138,7 @@ void VisualisationSettingsWidget::addSpinBox(Scene::Parameter p,
     spinBox[p]->setObjectName(QString("SceneParameter") + p);
     spinBox[p]->setRange(minValue, maxValue);
     spinBox[p]->setValue(scene->parameters[p]);
+    spinBox[p]->setSingleStep(0.1);
     layout->addRow(title, spinBox[p]);
     connect(spinBox[p], SIGNAL(valueChanged(double)),
             SLOT(updateSceneParameters()));
