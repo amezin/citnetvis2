@@ -25,7 +25,7 @@ GraphView::GraphView(QGraphicsScene *scene, QWidget *parent) :
 
     slider = new QSlider(Qt::Vertical, this);
     layout->addWidget(slider, 1, 1);
-    slider->setRange(-100, 100);
+    slider->setRange(-150, 50);
     slider->setValue(0);
     connect(slider, SIGNAL(valueChanged(int)), SLOT(setScale()));
 
