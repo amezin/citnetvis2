@@ -83,6 +83,8 @@ private:
     void clearAdjacencyData();
     void arrangeToLayers();
     void applyForces(Scene::Layer &l);
+    void yearGrid(const QMap<QString, qreal> &yearMinX,
+                  const QMap<QString, qreal> &yearMaxX);
     qreal tryPlaceLabel(const QRectF &) const;
     qreal placeLabel(const VNodeRef &n, QRectF rect);
 
@@ -127,12 +129,9 @@ private:
 
     QSet<QAbstractAnimation*> runningAnimations;
 
-    QStringList differentYears;
-    QHash<QString, qreal> yearBorders;
-    QHash<QString, qreal> yearCenters;
-
-    QHash<QString, QSharedPointer<QGraphicsLineItem> > yearLines;
-    QHash<QString, QSharedPointer<QGraphicsSimpleTextItem> > yearLabels;
+    QVector<QSharedPointer<QGraphicsLineItem> > yearLines;
+    QHash<QString, QSharedPointer<QGraphicsSimpleTextItem> >
+    yearLabels, oldYearLabels;
 };
 
 #endif // SCENE_H

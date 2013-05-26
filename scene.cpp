@@ -448,9 +448,8 @@ QFontMetricsF Scene::fontWithMetrics(QFont &font)
 void Scene::build()
 {
     qreal x = 0;
-    QHash<QString, qreal> yearMinX;
-    QHash<QString, qreal> yearMaxX;
-    differentYears.clear();
+    QMap<QString, qreal> yearMinX;
+    QMap<QString, qreal> yearMaxX;
     for (auto l = layers.begin(); l != layers.end(); l++) {
         for (auto &n : *l) {
             n->x = x;
@@ -468,8 +467,7 @@ void Scene::build()
         }
 
         auto &date = l.key().first;
-        if (l == layers.begin() || (l - 1).key().first != date) {
-            differentYears.append(l.key().first);
+        if (!yearMinX.contains(date)) {
             yearMinX[date] = x;
             yearMaxX[date] = x;
         } else {
@@ -512,25 +510,20 @@ void Scene::build()
         }
     }
 
-    yearBorders.clear();
-    QMutableHashIterator<QString, QSharedPointer<QGraphicsLineItem> >
-            yearLineIter(yearLines);
-    while (yearLineIter.hasNext()) {
-        if (qLowerBound(differentYears, yearLineIter.next().key())
-                == differentYears.end())
-        {
-            yearLineIter.remove();
-        }
+    animateItems(oldEdgeLines, edgeLines, this);
+    animateItems(oldNodeMarkers, nodeMarkers, this);
+
+    yearGrid(yearMinX, yearMaxX);
+
+    for (auto &r : labelRects) {
+        finalBounds = finalBounds.united(r);
     }
-    QMutableHashIterator<QString, QSharedPointer<QGraphicsSimpleTextItem> >
-            yearLabelIter(yearLabels);
-    while (yearLabelIter.hasNext()) {
-        if (qLowerBound(differentYears, yearLabelIter.next().key())
-                == differentYears.end())
-        {
-            yearLabelIter.remove();
-        }
-    }
+    setSceneRect(finalBounds);
+}
+
+void Scene::yearGrid(const QMap<QString, qreal> &yearMinX,
+                     const QMap<QString, qreal> &yearMaxX)
+{
     QColor bg(backgroundBrush().color().toRgb());
     QColor yearColor = QColor::fromRgbF(1 - bg.redF(), 1 - bg.greenF(),
                                         1 - bg.blueF(),
@@ -540,43 +533,69 @@ void Scene::build()
     QFont font;
     font.setPointSizeF(parameters[YearFontSize]);
     auto metrics(fontWithMetrics(font));
+    finalBounds.setTop(finalBounds.top() - metrics.lineSpacing());
 
-    for (auto i = differentYears.begin(); i != differentYears.end(); i++) {
-        if (i != differentYears.begin()) {
-            auto border = (yearMaxX[*(i - 1)] + yearMinX[*i]) / 2;
-            auto &line = yearLines[*i];
-            if (line.isNull()) {
-                line = QSharedPointer<QGraphicsLineItem>
-                        (new QGraphicsLineItem());
-                addItem(line.data());
-            }
-            line->setLine(border, finalBounds.top(),
-                          border, finalBounds.bottom());
-            line->setPen(yearPen);
-            line->setZValue(-5);
-            yearBorders[*i] = border;
+    int i = 0;
+    for (auto iMin = yearMinX.begin(), iMax = yearMaxX.begin();
+         iMin != yearMinX.end(); iMin++, iMax++)
+    {
+        Q_ASSERT(iMin.key() == iMax.key());
+        if (iMax == yearMaxX.begin()) continue;
+
+        qreal borderX = (*(iMax - 1) + *iMin) / 2;
+        QLineF line(borderX, finalBounds.top(), borderX, finalBounds.bottom());
+        if (yearLines.size() <= i) {
+            QSharedPointer<QGraphicsLineItem> p(addLine(line, yearPen));
+            yearLines.push_back(p);
+
+            p->setOpacity(0);
+            runAnim(new OpacityAnimation(p.data(), 1, this));
+        } else {
+            yearLines[i]->setPen(yearPen);
+            disableBSP(runAnim(
+                           new LineAnimation(yearLines[i].data(), line, this)));
         }
-        yearCenters[*i] = (yearMaxX[*i] + yearMinX[*i]) / 2;
-        auto &label = yearLabels[*i];
+
+        i++;
+    }
+
+    while (i < yearLines.size()) {
+        runAnim(new DisappearAnimation(yearLines.back(), this));
+        yearLines.pop_back();
+    }
+
+    oldYearLabels.swap(yearLabels);
+    qreal prevBorder = 0;
+    for (auto iMin = yearMinX.begin(), iMax = yearMaxX.begin();
+         iMin != yearMinX.end(); iMin++, iMax++)
+    {
+        Q_ASSERT(iMin.key() == iMax.key());
+        auto &year = iMin.key();
+
+        qreal border = finalBounds.right();
+        if (iMin + 1 != yearMinX.end()) {
+            border = (*iMax + *(iMin + 1)) / 2;
+        }
+
+        QPointF pos((prevBorder + border
+                     - metrics.boundingRect(year).width()) / 2,
+                    finalBounds.top());
+
+        auto label = oldYearLabels[year];
         if (label.isNull()) {
             label = QSharedPointer<QGraphicsSimpleTextItem>(
-                        new QGraphicsSimpleTextItem());
-            addItem(label.data());
+                        addSimpleText(year, font));
+            label->setPos(pos);
+        } else {
+            disableBSP(runAnim(new LabelAnimation(label.data(), pos, this)));
+            label->setFont(font);
         }
-        label->setText(*i);
-        label->setFont(font);
-        label->setPos(yearCenters[*i] - metrics.width(*i) / 2,
-                finalBounds.top());
         label->setBrush(yearColor);
-    }
+        yearLabels.insert(year, label);
 
-    animateItems(oldEdgeLines, edgeLines, this);
-    animateItems(oldNodeMarkers, nodeMarkers, this);
-
-    for (auto &r : labelRects) {
-        finalBounds = finalBounds.united(r);
+        prevBorder = border;
     }
-    setSceneRect(finalBounds);
+    animateItems(oldYearLabels, yearLabels, this);
 }
 
 typedef void (*LabelPlacement)(QRectF &, const QRectF &);
