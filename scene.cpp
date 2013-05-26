@@ -551,7 +551,7 @@ void Scene::yearGrid(const QMap<QString, qreal> &yearMinX,
     }
 
     oldYearLabels.swap(yearLabels);
-    qreal prevBorder = 0;
+    qreal prevBorder = finalBounds.left();
     for (auto iMin = yearMinX.begin(), iMax = yearMaxX.begin();
          iMin != yearMinX.end(); iMin++, iMax++)
     {
