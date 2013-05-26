@@ -21,6 +21,8 @@
 #include "opacityanimation.h"
 #include "disappearanimation.h"
 
+static const qreal minSceneCoordDelta = 0.1;
+
 Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
 {
     color = QColor::fromHsvF(qrand() / static_cast<qreal>(RAND_MAX), 1, 1);
@@ -49,6 +51,7 @@ Scene::Scene(QObject *parent) :
 
     parameters[LabelPlacementTime] = 0.1;
     parameters[AbsoluteCoordsTime] = 0.2;
+    parameters[AbsoluteCoordsIter] = 32;
 
     parameters[YearLineAlpha] = 0.2;
     parameters[YearLineWidth] = 1;
@@ -147,83 +150,71 @@ qreal Scene::minLayerWidth(const VNodeRef &p, bool prev) const
     return w;
 }
 
-static void computeForces(Scene::Layer &l, bool before, bool after)
+static void computeForces(Scene::Layer &l)
 {
     for (auto &n : l) {
-        int cnt = 0;
-        qreal y = 0;
-        for (auto &r : n->neighbors) {
-            if (((r->currentLayer < n->currentLayer) == before) ||
-                    ((r->currentLayer > n->currentLayer) == after))
-            {
-                y += r->y;
-                cnt++;
-            }
-        }
-        if (cnt) {
-            n->newY = y / cnt;
-        } else {
+        if (n->neighbors.isEmpty()) {
             n->newY = n->y;
+            continue;
         }
-    }
-}
 
-static bool collision(const VNodeRef &a, const VNodeRef &b)
-{
-    auto mindist = (a->size + b->size) / 2;
-    //return qAbs(a->y - b->y) < mindist * 1.1;
-    return a->y + mindist > b->newY || a->newY + mindist > b->y;
+        n->newY = 0;
+        for (auto &r : n->neighbors) {
+            n->newY += r->y;
+        }
+        n->newY /= n->neighbors.size();
+    }
 }
 
 static const qreal msecsPerSec = 1000;
 
-void Scene::applyForces(Scene::Layer &l)
+qreal Scene::applyForces(Scene::Layer &l)
 {
-    bool forward = true;
-    for (;;) {
-        for (auto i = forward ? l.begin() : l.end() - 1; i != l.end();) {
+    static QVector<qreal> startY;
+    startY.resize(l.size());
+    for (auto &n : l) {
+        startY[n->indexInLayer] = n->y;
+    }
+
+    bool blockMoved;
+    do {
+        for (auto i = l.begin(); i != l.end(); i++) {
             (*i)->y = (*i)->newY;
             if (i != l.begin()) {
-                (*i)->y = qMax((*i)->y, (*(i - 1))->y
-                               + ((*(i - 1))->size + (*i)->size) / 2);
-            }
-            if (i + 1 != l.end()) {
-                (*i)->y = qMin((*i)->y, (*(i + 1))->y
-                               - ((*(i + 1))->size + (*i)->size) / 2);
-            }
-            if (forward) i++;
-            else {
-                if (i == l.begin()) break;
-                i--;
+                auto minY = (*(i - 1))->y + ((*(i - 1))->size + (*i)->size) / 2;
+                if ((*i)->y < minY) {
+                    (*i)->y = minY;
+                }
             }
         }
-        forward = !forward;
 
-        bool blockMoved = false;
-        auto i = l.begin();
-        while (i != l.end()) {
+        blockMoved = false;
+        for (auto i = l.begin(); i != l.end();) {
             qreal common = (*i)->newY - (*i)->y;
             auto start = i++;
+
             int n = 1;
-            while (i != l.end() && collision(*(i - 1), *i)) {
+            while (i != l.end() && (*i)->newY - (*i)->y < common / n) {
                 common += (*i)->newY - (*i)->y;
                 i++;
                 n++;
             }
             common /= n;
-            if (qAbs(common) > 0.1) {
-                blockMoved = true;
-            }
             while (start != i) {
                 (*start)->newY = (*start)->y + common;
                 start++;
             }
+            if (common < -minSceneCoordDelta) {
+                blockMoved = true;
+            }
         }
+    } while (blockMoved);
 
-        if (!blockMoved) {
-            return;
-        }
+    qreal maxDelta = 0;
+    for (auto &n : l) {
+        maxDelta = qMax(maxDelta, qAbs(startY[n->indexInLayer] - n->y));
     }
+    return maxDelta;
 }
 
 void Scene::absoluteCoords()
@@ -240,31 +231,26 @@ void Scene::absoluteCoords()
         }
     }
 
-    for (auto &i : layers) {
-        computeForces(i, true, false);
-        applyForces(i);
-    }
-
-    for (auto i = layers.end(); i != layers.begin();) {
-        --i;
-        computeForces(*i, false, true);
-        applyForces(*i);
-    }
-
     QElapsedTimer timer;
-    timer.start();
-    do {
-        for (auto &l : layers) {
-            computeForces(l, true, true);
-            applyForces(l);
-        }
+    qint64 timeout = static_cast<qint64>(parameters[AbsoluteCoordsTime]
+                                         * msecsPerSec);
 
+    timer.start();
+    qreal maxdelta;
+    int iter = 0;
+    do {
+        maxdelta = 0;
+        for (auto &l : layers) {
+            computeForces(l);
+            maxdelta = qMax(maxdelta, applyForces(l));
+        }
         for (auto i = layers.end(); i != layers.begin();) {
             --i;
-            computeForces(*i, true, true);
-            applyForces(*i);
+            computeForces(*i);
+            maxdelta = qMax(maxdelta, applyForces(*i));
         }
-    } while (timer.elapsed() / msecsPerSec < parameters[AbsoluteCoordsTime]);
+    } while (timer.elapsed() < timeout && maxdelta > minSceneCoordDelta &&
+             ++iter < parameters[AbsoluteCoordsIter]);
 
     auto minY = std::numeric_limits<qreal>::max();
     for (auto &l : layers) {

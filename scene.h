@@ -46,6 +46,7 @@ public:
         YearLineAlpha,
         YearLineWidth,
         YearFontSize,
+        AbsoluteCoordsIter,
 
         NParameters
     };
@@ -82,7 +83,7 @@ private:
     void findEdgesInsideLayers();
     void clearAdjacencyData();
     void arrangeToLayers();
-    void applyForces(Scene::Layer &l);
+    qreal applyForces(Scene::Layer &l);
     void yearGrid(const QMap<QString, qreal> &yearMinX,
                   const QMap<QString, qreal> &yearMaxX);
     qreal tryPlaceLabel(const QRectF &) const;
