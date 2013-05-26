@@ -50,9 +50,12 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     changesColor.insert(Scene::AdditionalNodeValue);
 
     addSpinBox(Scene::LabelPlacementTime, "Label placement timeout", 0.0, 1.0);
+    changesLabel.insert(Scene::LabelPlacementTime);
     addSpinBox(Scene::AbsoluteCoordsTime, "Timeout for for force-based algo",
                0.0, 10.0);
+    changesSize.insert(Scene::AbsoluteCoordsTime);
     addSpinBox(Scene::AbsoluteCoordsIter, "Number of iterations", 1, 256, 0);
+    changesSize.insert(Scene::AbsoluteCoordsIter);
 
     addSpinBox(Scene::YearFontSize, "Font size for year labels", 5.0, 32.0);
     changesColor.insert(Scene::YearFontSize);
