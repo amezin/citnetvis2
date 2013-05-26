@@ -119,6 +119,10 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     restoreGeometry(settings->value("geometry").toByteArray());
     restoreState(settings->value("state").toByteArray());
 
+    statusLabel = new QLabel(this);
+    dockBars[Qt::BottomDockWidgetArea]->addWidget(statusLabel);
+    statusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
+
     auto viewButton = new QPushButton("&View", this);
     dockBars[Qt::BottomDockWidgetArea]->addWidget(viewButton);
     auto viewMenu = new QMenu(viewButton->text(), this);
@@ -140,11 +144,6 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     exportDialog->setDefaultSuffix("svg");
     exportDialog->setNameFilters(QStringList()
                                  << "SVG images (*.svg)" << "All files (*)");
-
-    statusLabel = new QLabel(this);
-    dockBars[Qt::BottomDockWidgetArea]->addWidget(statusLabel);
-    statusLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Maximum);
-    statusLabel->setAlignment(Qt::AlignRight);
 }
 
 QScrollArea *MainWindow::makeScrollable(QWidget *widget)
