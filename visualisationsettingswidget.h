@@ -23,7 +23,7 @@ private slots:
 
 private:
     void addSpinBox(Scene::Parameter, const QString &title,
-                    double minValue, double maxValue);
+                    double minValue, double maxValue, int prec = 1);
 
     Scene *scene;
     QDoubleSpinBox *spinBox[Scene::NParameters];

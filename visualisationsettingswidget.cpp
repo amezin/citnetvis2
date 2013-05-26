@@ -52,6 +52,7 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     addSpinBox(Scene::LabelPlacementTime, "Label placement timeout", 0.0, 1.0);
     addSpinBox(Scene::AbsoluteCoordsTime, "Timeout for for force-based algo",
                0.0, 10.0);
+    addSpinBox(Scene::AbsoluteCoordsIter, "Number of iterations", 1, 256, 0);
 
     addSpinBox(Scene::YearFontSize, "Font size for year labels", 5.0, 32.0);
     changesColor.insert(Scene::YearFontSize);
@@ -131,13 +132,15 @@ void VisualisationSettingsWidget::loadState(const QSettings *settings)
 
 void VisualisationSettingsWidget::addSpinBox(Scene::Parameter p,
                                              const QString &title,
-                                             double minValue, double maxValue)
+                                             double minValue, double maxValue,
+                                             int prec)
 {
     Q_ASSERT(!spinBox[p]);
     spinBox[p] = new QDoubleSpinBox(this);
     spinBox[p]->setObjectName(QString("SceneParameter") + p);
     spinBox[p]->setRange(minValue, maxValue);
     spinBox[p]->setValue(scene->parameters[p]);
+    spinBox[p]->setDecimals(prec);
     if ((minValue > 0.0 && minValue < 1.0) || maxValue <= 1.0) {
         spinBox[p]->setSingleStep(0.1);
     }
