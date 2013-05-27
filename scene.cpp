@@ -233,7 +233,7 @@ void Scene::absoluteCoords()
 
     QElapsedTimer timer;
     qint64 timeout = static_cast<qint64>(parameters[AbsoluteCoordsTime]
-                                         * msecsPerSec);
+                                         * msecsPerSec / 2);
 
     timer.start();
     qreal maxdelta;
@@ -244,6 +244,12 @@ void Scene::absoluteCoords()
             computeForces(l);
             maxdelta = qMax(maxdelta, applyForces(l));
         }
+    } while (timer.elapsed() < timeout && maxdelta > minSceneCoordDelta &&
+             ++iter < parameters[AbsoluteCoordsIter]);
+    timer.start();
+    iter = 0;
+    do {
+        maxdelta = 0;
         for (auto i = layers.end(); i != layers.begin();) {
             --i;
             computeForces(*i);
