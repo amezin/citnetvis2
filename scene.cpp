@@ -74,17 +74,19 @@ inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
     return result;
 }
 
-static void sortedNeighbors(const VNodeRef &n, bool layerLess)
+static void sortedNeighbors(const VNodeRef &n)
 {
-    n->neighborIndices.resize(0);
+    n->neighborIndices[0].resize(0);
+    n->neighborIndices[1].resize(0);
     for (auto &i : n->neighbors) {
-        if ((i->currentLayer < n->currentLayer) == layerLess &&
-                (i->indexInLayer >= 0))
+        if (i->indexInLayer >= 0)
         {
-            n->neighborIndices.push_back(i->indexInLayer);
+            n->neighborIndices[i->currentLayer > n->currentLayer]
+                    .push_back(i->indexInLayer);
         }
     }
-    qSort(n->neighborIndices);
+    qSort(n->neighborIndices[0]);
+    qSort(n->neighborIndices[1]);
 }
 
 inline bool greaterDegree(const VNodeRef &l, const VNodeRef &r)
@@ -100,15 +102,17 @@ inline void updateIndices(Scene::Layer &layer)
     }
 }
 
-inline void updateNeighbors(Scene::Layer &layer, bool layerLess)
+inline void updateNeighbors(Scene::Layer &layer)
 {
     for (auto &n : layer) {
-        sortedNeighbors(n, layerLess);
+        sortedNeighbors(n);
     }
 }
 
-static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n)
+static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
+                          bool l, bool r)
 {
+    bool b[] = { l, r };
     int intersections = 0;
     auto j = layer.begin();
     auto best = j;
@@ -121,10 +125,13 @@ static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n)
             found = j;
         }
 
-        intersections -= intersectionNumber(n->neighborIndices,
-                                            (*j)->neighborIndices);
-        intersections += intersectionNumber((*j)->neighborIndices,
-                                            n->neighborIndices);
+        for (int s = 0; s < 2; s++) {
+            if (!b[s]) continue;
+            intersections -= intersectionNumber(n->neighborIndices[s],
+                                                (*j)->neighborIndices[s]);
+            intersections += intersectionNumber((*j)->neighborIndices[s],
+                                                n->neighborIndices[s]);
+        }
 
         if (intersections < bestIntersections)
         {
@@ -149,12 +156,16 @@ static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n)
     return true;
 }
 
-static void insertNodes(Scene::Layer &layer, bool requireSorted)
+static void insertNodes(Scene::Layer &layer, bool requireSorted,
+                        bool takeMovable, bool l, bool r)
 {
+    updateNeighbors(layer);
+
     static QVector<VNodeRef> insert;
     insert.resize(0);
     for (auto i = layer.begin(); i != layer.end(); ) {
-        if ((*i)->indexInLayer < 0) {
+        if ((*i)->indexInLayer < 0 || (takeMovable && (*i)->moveable))
+        {
             insert.push_back(*i);
             i = layer.erase(i);
         } else {
@@ -164,54 +175,39 @@ static void insertNodes(Scene::Layer &layer, bool requireSorted)
     qStableSort(insert.begin(), insert.end(), greaterDegree);
 
     for (auto &n : insert) {
-        if (requireSorted && n->neighborIndices.isEmpty()) {
-            continue;
+        if (requireSorted) {
+            if ((!l || n->neighborIndices[0].isEmpty()) &&
+                    (!r || n->neighborIndices[1].isEmpty()))
+            {
+                continue;
+            }
         }
-        moveBestPlace(layer, n);
+        moveBestPlace(layer, n, l, r);
     }
 
     updateIndices(layer);
 
     if (requireSorted) {
         for (auto &n : insert) {
-            if (n->neighborIndices.isEmpty()) {
+            if ((!l || n->neighborIndices[0].isEmpty()) &&
+                    (!r || n->neighborIndices[1].isEmpty()))
+            {
                 layer.append(n);
             }
         }
     }
 }
 
-static void greedyMove(Scene::Layer &layer)
-{
-    bool changed;
-    do {
-        changed = false;
-
-        static QVector<VNodeRef> queue;
-        queue.resize(0);
-        for (auto &n : layer) {
-            if (n->moveable) {
-                queue.push_back(n);
-            }
-        }
-        std::random_shuffle(queue.begin(), queue.end());
-        for (auto &n : queue) {
-            changed = changed || moveBestPlace(layer, n);
-        }
-        updateIndices(layer);
-    } while (changed);
-}
-
 long long Scene::intersections()
 {
     long long result = 0;
     for (auto &l : layers) {
-        updateNeighbors(l, true);
+        updateNeighbors(l);
         VNodeRef p;
         for (auto &n : l) {
             if (p) {
-                result += intersectionNumber(p->neighborIndices,
-                                             n->neighborIndices);
+                result += intersectionNumber(p->neighborIndices[0],
+                        n->neighborIndices[0]);
             }
             p = n;
         }
@@ -255,29 +251,30 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
     removeOldNodes();
 
     for (auto &i : layers) {
-        updateNeighbors(i, true);
-        insertNodes(i, true);
+        updateNeighbors(i);
+        insertNodes(i, true, false, true, true);
     }
     for (auto i = layers.end(); i != layers.begin();) {
         --i;
-        updateNeighbors(*i, false);
-        insertNodes(*i, true);
-    }
-    for (auto &i : layers) {
-        updateNeighbors(i, true);
-        insertNodes(i, false);
+        updateNeighbors(*i);
+        insertNodes(*i, true, false, true, true);
     }
     long long prev, cur = intersections();
     do {
         prev = cur;
+        for (auto &i : layers) {
+            insertNodes(i, false, true, true, false);
+        }
         for (auto i = layers.end(); i != layers.begin();) {
             --i;
-            updateNeighbors(*i, false);
-            greedyMove(*i);
+            insertNodes(*i, false, true, false, true);
         }
         for (auto &i : layers) {
-            updateNeighbors(i, true);
-            greedyMove(i);
+            insertNodes(i, false, true, true, true);
+        }
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            insertNodes(*i, false, true, true, true);
         }
         cur = intersections();
     } while (cur < prev);

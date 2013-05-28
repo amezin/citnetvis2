@@ -31,7 +31,7 @@ struct VNode : public QSharedData
     QString label;
     QColor color;
 
-    QVector<int> neighborIndices;
+    QVector<int> neighborIndices[2];
 };
 
 inline uint qHash(const VNodeRef &ref)
