@@ -477,9 +477,9 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
         ptr = QSharedPointer<QGraphicsEllipseItem>(
                     addEllipse(rect, Qt::NoPen, color));
         ptr->setFlag(QGraphicsItem::ItemIsSelectable);
-        ptr->setToolTip(n->publication.toString());
         ptr->setData(0, n->publication.toString());
     }
+    ptr->setToolTip(publications.find(n->publication)->nonEmptyTitle());
     nodeMarkers.insert(n->publication, ptr);
 }
 
