@@ -283,10 +283,12 @@ void MainWindow::showGraph()
     stopAction->setDisabled(true);
     scene->setDataset(*dataset, settingsWidget->showIsolated());
 
-    static const QString infoText("Publications: %1 Edge segments: %2");
+    static const QString infoText("Publications: %1 Edge segments: %2 "
+                                  "Intersections: %3");
     statusLabel->setText(infoText.arg(
                              QString::number(scene->publicationCount()),
-                             QString::number(scene->edgeSegmentCount())));
+                             QString::number(scene->edgeSegmentCount()),
+                             QString::number(scene->intersections())));
 
     nodeWidget->setEndpoint(settingsWidget->endpointUrl(),
                             dataset->queryParameters());

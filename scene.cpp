@@ -89,7 +89,7 @@ static void sortedNeighbors(const VNodeRef &n)
     qSort(n->neighborIndices[1]);
 }
 
-inline bool greaterDegree(const VNodeRef &l, const VNodeRef &r)
+static bool greaterDegree(const VNodeRef &l, const VNodeRef &r)
 {
     return l->neighbors.size() > r->neighbors.size();
 }
@@ -109,7 +109,7 @@ inline void updateNeighbors(Scene::Layer &layer)
     }
 }
 
-static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
+static int moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
                           bool l, bool r)
 {
     bool b[] = { l, r };
@@ -117,7 +117,7 @@ static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
     auto j = layer.begin();
     auto best = j;
     auto bestIntersections = intersections;
-    int oldIntersections;
+    int oldIntersections = 0;
     auto found = layer.end();
     while (j != layer.end()) {
         if (n == *j) {
@@ -144,16 +144,13 @@ static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
     }
 
     if (found != layer.end()) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
         if (bestIntersections == oldIntersections) {
-#pragma GCC diagnostic pop
-            return false;
+            return 0;
         }
         layer.erase(found);
     }
     layer.insert(best, n);
-    return true;
+    return bestIntersections - oldIntersections;
 }
 
 static void insertNodes(Scene::Layer &layer, bool requireSorted,
@@ -196,6 +193,32 @@ static void insertNodes(Scene::Layer &layer, bool requireSorted,
             }
         }
     }
+}
+
+static long long greedyMove(Scene::Layer &layer, bool l, bool r)
+{
+    updateNeighbors(layer);
+
+    long long z, sum = 0;
+    do {
+        static QVector<VNodeRef> queue;
+        queue.resize(0);
+        for (auto &n : layer) {
+            if (n->moveable) {
+                queue.push_back(n);
+            }
+        }
+        std::random_shuffle(queue.begin(), queue.end());
+        z = 0;
+        for (auto &n : queue) {
+            z += moveBestPlace(layer, n, l, r);
+        }
+        sum += z;
+    } while (z < 0);
+
+    updateIndices(layer);
+
+    return sum;
 }
 
 long long Scene::intersections()
@@ -251,33 +274,43 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
     removeOldNodes();
 
     for (auto &i : layers) {
-        updateNeighbors(i);
         insertNodes(i, true, false, true, true);
     }
     for (auto i = layers.end(); i != layers.begin();) {
         --i;
-        updateNeighbors(*i);
         insertNodes(*i, true, false, true, true);
     }
-    long long prev, cur = intersections();
+    for (auto &i : layers) {
+        insertNodes(i, false, false, true, true);
+    }
+
+    for (auto &i : layers) {
+        insertNodes(i, false, true, true, false);
+    }
+    for (auto i = layers.end(); i != layers.begin();) {
+        --i;
+        insertNodes(*i, false, true, true, true);
+    }
+
+    int steps = 0;
+    long long z;
     do {
-        prev = cur;
+        z = 0;
         for (auto &i : layers) {
-            insertNodes(i, false, true, true, false);
+            z += greedyMove(i, true, true);
         }
+        steps++;
+    } while (z < 0);
+
+    do {
+        z = 0;
         for (auto i = layers.end(); i != layers.begin();) {
             --i;
-            insertNodes(*i, false, true, false, true);
+            z += greedyMove(*i, true, true);
         }
-        for (auto &i : layers) {
-            insertNodes(i, false, true, true, true);
-        }
-        for (auto i = layers.end(); i != layers.begin();) {
-            --i;
-            insertNodes(*i, false, true, true, true);
-        }
-        cur = intersections();
-    } while (cur < prev);
+        steps++;
+    } while (z < 0);
+    qDebug() << "Steps" << steps;
 
     int totalNodes = 0;
     int totalEdges = 0;
