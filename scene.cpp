@@ -58,6 +58,165 @@ Scene::Scene(QObject *parent) :
     parameters[YearFontSize] = 10;
 
     setBackgroundBrush(QColor::fromRgbF(1, 1, 1));
+    setItemIndexMethod(QGraphicsScene::NoIndex);
+}
+
+inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
+{
+    int result = 0;
+    int j = 0;
+    for (int i = 0; i < a.size(); i++) {
+        while (j < b.size() && b[j] < a[i]) {
+            j++;
+        }
+        result += j;
+    }
+    return result;
+}
+
+static void sortedNeighbors(const VNodeRef &n, bool layerLess)
+{
+    n->neighborIndices.resize(0);
+    for (auto &i : n->neighbors) {
+        if ((i->currentLayer < n->currentLayer) == layerLess &&
+                (i->indexInLayer >= 0))
+        {
+            n->neighborIndices.push_back(i->indexInLayer);
+        }
+    }
+    qSort(n->neighborIndices);
+}
+
+inline bool greaterDegree(const VNodeRef &l, const VNodeRef &r)
+{
+    return l->neighbors.size() > r->neighbors.size();
+}
+
+inline void updateIndices(Scene::Layer &layer)
+{
+    int idx = 0;
+    for (auto &n : layer) {
+        n->indexInLayer = idx++;
+    }
+}
+
+inline void updateNeighbors(Scene::Layer &layer, bool layerLess)
+{
+    for (auto &n : layer) {
+        sortedNeighbors(n, layerLess);
+    }
+}
+
+static bool moveBestPlace(Scene::Layer &layer, const VNodeRef &n)
+{
+    int intersections = 0;
+    auto j = layer.begin();
+    auto best = j;
+    auto bestIntersections = intersections;
+    int oldIntersections;
+    auto found = layer.end();
+    while (j != layer.end()) {
+        if (n == *j) {
+            oldIntersections = intersections;
+            found = j;
+        }
+
+        intersections -= intersectionNumber(n->neighborIndices,
+                                            (*j)->neighborIndices);
+        intersections += intersectionNumber((*j)->neighborIndices,
+                                            n->neighborIndices);
+
+        if (intersections < bestIntersections)
+        {
+            bestIntersections = intersections;
+            best = j;
+            ++best;
+        }
+
+        ++j;
+    }
+
+    if (found != layer.end()) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+        if (bestIntersections == oldIntersections) {
+#pragma GCC diagnostic pop
+            return false;
+        }
+        layer.erase(found);
+    }
+    layer.insert(best, n);
+    return true;
+}
+
+static void insertNodes(Scene::Layer &layer, bool requireSorted)
+{
+    static QVector<VNodeRef> insert;
+    insert.resize(0);
+    for (auto i = layer.begin(); i != layer.end(); ) {
+        if ((*i)->indexInLayer < 0) {
+            insert.push_back(*i);
+            i = layer.erase(i);
+        } else {
+            i++;
+        }
+    }
+    qStableSort(insert.begin(), insert.end(), greaterDegree);
+
+    for (auto &n : insert) {
+        if (requireSorted && n->neighborIndices.isEmpty()) {
+            continue;
+        }
+        moveBestPlace(layer, n);
+    }
+
+    updateIndices(layer);
+
+    if (requireSorted) {
+        for (auto &n : insert) {
+            if (n->neighborIndices.isEmpty()) {
+                layer.append(n);
+            }
+        }
+    }
+}
+
+static void greedyMove(Scene::Layer &layer)
+{
+    bool changed;
+    do {
+        changed = false;
+
+        static QVector<VNodeRef> queue;
+        queue.resize(0);
+        for (auto &n : layer) {
+            if (n->moveable) {
+                queue.push_back(n);
+            }
+        }
+        std::random_shuffle(queue.begin(), queue.end());
+        for (auto &n : queue) {
+            changed = changed || moveBestPlace(layer, n);
+        }
+        updateIndices(layer);
+    } while (changed);
+}
+
+long long Scene::intersections()
+{
+    long long result = 0;
+    for (auto &l : layers) {
+        updateNeighbors(l, true);
+        VNodeRef p;
+        for (auto &n : l) {
+            if (p) {
+                result += intersectionNumber(p->neighborIndices,
+                                             n->neighborIndices);
+            }
+            p = n;
+        }
+    }
+    return result;
 }
 
 void Scene::setDataset(const Dataset &ds, bool showIsolated)
@@ -95,20 +254,33 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
 
     removeOldNodes();
 
-    auto i = layers.begin();
-    while (i != layers.end()) {
-        sortNodes(*i++, true);
+    for (auto &i : layers) {
+        updateNeighbors(i, true);
+        insertNodes(i, true);
     }
-    while (i != layers.begin()) {
-        sortNodes(*(--i), false);
+    for (auto i = layers.end(); i != layers.begin();) {
+        --i;
+        updateNeighbors(*i, false);
+        insertNodes(*i, true);
     }
-
-    while (i != layers.end()) {
-        sortNodes(*i++, true, false);
+    for (auto &i : layers) {
+        updateNeighbors(i, true);
+        insertNodes(i, false);
     }
-    while (i != layers.begin()) {
-        sortNodes(*(--i), false, false);
-    }
+    long long prev, cur = intersections();
+    do {
+        prev = cur;
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            updateNeighbors(*i, false);
+            greedyMove(*i);
+        }
+        for (auto &i : layers) {
+            updateNeighbors(i, true);
+            greedyMove(i);
+        }
+        cur = intersections();
+    } while (cur < prev);
 
     int totalNodes = 0;
     int totalEdges = 0;
@@ -299,7 +471,7 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
         ptr = *found;
         ptr->setBrush(color);
         if (ptr->rect() != rect) {
-            disableBSP(runAnim(new NodeAnimation(ptr.data(), rect, this)));
+            runAnim(new NodeAnimation(ptr.data(), rect, this));
         }
     } else {
         ptr = QSharedPointer<QGraphicsEllipseItem>(
@@ -334,7 +506,7 @@ void Scene::addEdgeLine(const VNodeRef &start, const VNodeRef &end,
         ptr = *found;
         ptr->setPen(pen);
         if (ptr->line() != line) {
-            disableBSP(runAnim(new LineAnimation(ptr.data(), line, this)));
+            runAnim(new LineAnimation(ptr.data(), line, this));
         }
     } else {
         ptr = QSharedPointer<QGraphicsLineItem>(addLine(line, pen));
@@ -357,7 +529,7 @@ void Scene::addLabel(const VNodeRef &n, const QPointF &pos, const QFont &font,
         ptr->setFont(font);
         ptr->setText(n->label);
         if (ptr->pos() != pos) {
-            disableBSP(runAnim(new LabelAnimation(ptr.data(), pos, this)));
+            runAnim(new LabelAnimation(ptr.data(), pos, this));
         }
     } else {
         ptr = QSharedPointer<QGraphicsSimpleTextItem>(
@@ -399,29 +571,6 @@ void Scene::finishAnimations()
             anim->setCurrentTime(anim->totalDuration());
             delete anim;
         }
-    }
-}
-
-void Scene::disableBSP(QAbstractAnimation *anim)
-{
-    if (itemIndexMethod() != QGraphicsScene::NoIndex) {
-        qDebug() << "Disabling BSP";
-        setItemIndexMethod(QGraphicsScene::NoIndex);
-    }
-
-    runningAnimations.insert(anim);
-    connect(anim, SIGNAL(destroyed()), SLOT(animationFinished()));
-}
-
-void Scene::animationFinished()
-{
-    runningAnimations.remove(reinterpret_cast<QAbstractAnimation*>(sender()));
-
-    if (runningAnimations.isEmpty() &&
-            itemIndexMethod() != QGraphicsScene::BspTreeIndex)
-    {
-        qDebug() << "Enabling BSP";
-        setItemIndexMethod(QGraphicsScene::BspTreeIndex);
     }
 }
 
@@ -544,8 +693,7 @@ void Scene::yearGrid(const QMap<QString, qreal> &yearMinX,
             runAnim(new OpacityAnimation(p.data(), 1, this));
         } else {
             yearLines[i]->setPen(yearPen);
-            disableBSP(runAnim(
-                           new LineAnimation(yearLines[i].data(), line, this)));
+            runAnim(new LineAnimation(yearLines[i].data(), line, this));
         }
 
         i++;
@@ -579,7 +727,7 @@ void Scene::yearGrid(const QMap<QString, qreal> &yearMinX,
                         addSimpleText(year, font));
             label->setPos(pos);
         } else {
-            disableBSP(runAnim(new LabelAnimation(label.data(), pos, this)));
+            runAnim(new LabelAnimation(label.data(), pos, this));
             label->setFont(font);
         }
         label->setBrush(yearColor);
@@ -944,116 +1092,5 @@ void Scene::addEdge(const Publication &a, const Publication &b)
         }
 
         prev = found;
-    }
-}
-
-inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
-{
-    int result = 0;
-    int j = 0;
-    for (int i = 0; i < a.size(); i++) {
-        while (j < b.size() && b[j] < a[i]) {
-            j++;
-        }
-        result += j;
-    }
-    return result;
-}
-
-static void sortedNeighbors(const VNodeRef &n, bool layerLess)
-{
-    n->neighborIndices.resize(0);
-    n->nNeighbors = 0;
-    for (auto &i : n->neighbors) {
-        if ((i->currentLayer < n->currentLayer) != layerLess) {
-            continue;
-        }
-        n->nNeighbors++;
-        if (i->indexInLayer >= 0) {
-            n->neighborIndices.push_back(i->indexInLayer);
-        }
-    }
-    qSort(n->neighborIndices);
-}
-
-void Scene::sortNodes(Layer &layer, bool layerLess, bool requireSortedNeighbors)
-{
-    for (auto &n : layer) {
-        sortedNeighbors(n, layerLess);
-        n->sorted = false;
-    }
-
-    auto i = layer.begin();
-    while (i != layer.end() && (*i)->indexInLayer < 0) {
-        auto j = i;
-        while (j != layer.begin()) {
-            if ((*(j - 1))->neighbors.size() <= (*i)->neighbors.size()) {
-                break;
-            }
-            --j;
-        }
-
-        layer.insert(j, *i);
-        i = layer.erase(i);
-    }
-
-    i = layer.begin();
-    while (i != layer.end()) {
-        if ((*i)->sorted) {
-            i++;
-            continue;
-        }
-        if (requireSortedNeighbors) {
-            if ((*i)->neighborIndices.size() < (*i)->nNeighbors) {
-                i++;
-                continue;
-            }
-        }
-        (*i)->sorted = true;
-        if (!(*i)->moveable) {
-            i++;
-            continue;
-        }
-
-        int intersections = 0;
-
-        auto j = layer.begin();
-        auto best = j;
-        auto bestIntersections = intersections;
-
-        while (j != layer.end()) {
-            if (j == i || (*i)->indexInLayer < 0) {
-                ++j;
-                continue;
-            }
-
-            intersections -= intersectionNumber((*i)->neighborIndices,
-                                                (*j)->neighborIndices);
-            intersections += intersectionNumber((*j)->neighborIndices,
-                                                (*i)->neighborIndices);
-
-            if (intersections < bestIntersections)
-            {
-                bestIntersections = intersections;
-                best = j;
-                ++best;
-            }
-
-            ++j;
-        }
-
-        while (best != layer.end() && (*best)->indexInLayer < 0) {
-            best++;
-        }
-
-        layer.insert(best, *i);
-        i = layer.erase(i);
-    }
-
-    int idx = 0;
-    for (auto &n : layer) {
-        if (n->sorted) {
-            n->indexInLayer = idx++;
-        }
     }
 }

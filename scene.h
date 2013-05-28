@@ -63,13 +63,9 @@ public:
     void absoluteCoords();
     void build();
     void finishAnimations();
-
-private slots:
-    void animationFinished();
+    long long intersections();
 
 private:
-    void disableBSP(QAbstractAnimation *);
-
     typedef QPair<QString, int> LayerId;
 
     int computeSubLevel(const Identifier &p, QSet<Identifier> &inStack);
@@ -103,8 +99,6 @@ private:
 
     QHash<Identifier, PublicationInfo> publicationInfo;
 
-    void sortNodes(Layer &, bool layerLess, bool requireSortedNeighbors = true);
-
     QMap<LayerId, Layer> layers;
 
     QHash<Identifier, Publication> publications;
@@ -127,8 +121,6 @@ private:
                   const QBrush &);
 
     QRectF finalBounds;
-
-    QSet<QAbstractAnimation*> runningAnimations;
 
     QVector<QSharedPointer<QGraphicsLineItem> > yearLines;
     QHash<QString, QSharedPointer<QGraphicsSimpleTextItem> >

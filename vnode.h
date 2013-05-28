@@ -25,7 +25,6 @@ struct VNode : public QSharedData
 
     bool updated;
     bool moveable;
-    bool sorted;
 
     QPair<QString, int> currentLayer;
     qreal x, y, size, newY;
@@ -33,7 +32,6 @@ struct VNode : public QSharedData
     QColor color;
 
     QVector<int> neighborIndices;
-    int nNeighbors;
 };
 
 inline uint qHash(const VNodeRef &ref)
