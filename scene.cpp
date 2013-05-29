@@ -237,7 +237,7 @@ static void sortByBarycenters(Scene::Layer &i, bool dir)
 
     QVector<VNodeRef> v(i.size());
     qCopy(i.begin(), i.end(), v.begin());
-    qSort(v.begin(), v.end(), BarycenterCompare(dir));
+    qStableSort(v.begin(), v.end(), BarycenterCompare(dir));
     i = QLinkedList<VNodeRef>();
     for (auto &j : v) {
         i.append(j);
