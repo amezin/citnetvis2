@@ -206,22 +206,44 @@ long long Scene::intersections()
     return result;
 }
 
-static qreal barycenter(const VNodeRef &a)
+static qreal barycenter(const VNodeRef &a, bool dir)
 {
     qreal z = 0;
-    for (auto &i : a->neighborIndices[0]) {
+    for (auto &i : a->neighborIndices[dir]) {
         z += i;
     }
-    if (a->neighborIndices[0].isEmpty()) {
+    if (a->neighborIndices[dir].isEmpty()) {
         return a->indexInLayer;
     } else {
-        return z / a->neighborIndices[0].size();
+        return z / a->neighborIndices[dir].size();
     }
 }
 
-inline bool barycenterLess(const VNodeRef &a, const VNodeRef &b)
+struct BarycenterCompare {
+    BarycenterCompare(bool dir) : dir(dir) { }
+
+    bool operator()(const VNodeRef &a, const VNodeRef &b) const
+    {
+        return barycenter(a, dir) < barycenter(b, dir);
+    }
+
+private:
+    bool dir;
+};
+
+static void sortByBarycenters(Scene::Layer &i, bool dir)
 {
-    return barycenter(a) < barycenter(b);
+    updateNeighbors(i);
+
+    QVector<VNodeRef> v(i.size());
+    qCopy(i.begin(), i.end(), v.begin());
+    qSort(v.begin(), v.end(), BarycenterCompare(dir));
+    i = QLinkedList<VNodeRef>();
+    for (auto &j : v) {
+        i.append(j);
+    }
+
+    updateIndices(i);
 }
 
 void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
@@ -262,17 +284,11 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
 
     if (barycenter) {
         for (auto &i : layers) {
-            updateNeighbors(i);
-
-            QVector<VNodeRef> v(i.size());
-            qCopy(i.begin(), i.end(), v.begin());
-            qSort(v.begin(), v.end(), barycenterLess);
-            i = QLinkedList<VNodeRef>();
-            for (auto &j : v) {
-                i.append(j);
-            }
-
-            updateIndices(i);
+            sortByBarycenters(i, false);
+        }
+        for (auto i = layers.end(); i != layers.begin();) {
+            --i;
+            sortByBarycenters(*i, true);
         }
 
         absoluteCoords();
