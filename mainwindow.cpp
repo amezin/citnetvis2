@@ -281,7 +281,9 @@ void MainWindow::executeQuery()
 void MainWindow::showGraph()
 {
     stopAction->setDisabled(true);
-    scene->setDataset(*dataset, settingsWidget->showIsolated());
+    scene->setDataset(*dataset, settingsWidget->showIsolated(),
+                      settingsWidget->useBarycenterHeuristic(),
+                      settingsWidget->useSlowAlgorithm());
 
     static const QString infoText("Publications: %1 Edge segments: %2 "
                                   "Intersections: %3");

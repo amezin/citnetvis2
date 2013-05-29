@@ -19,11 +19,14 @@ public:
     QString referencePredicate() const { return referenceEdit->text(); }
     bool loadReferences() const { return recursiveCheck->value(); }
     bool showIsolated() const { return isolatedCheck->value(); }
+    bool useBarycenterHeuristic() const { return barycenterCheck->value(); }
+    bool useSlowAlgorithm() const { return slowCheck->value(); }
 
 private:
     PersistentField *endpointUrlEdit, *dateEdit, *titleEdit, *referenceEdit,
     *dateRegExEdit;
-    PersistentCheck *recursiveCheck, *isolatedCheck;
+    PersistentCheck *recursiveCheck, *isolatedCheck, *barycenterCheck,
+    *slowCheck;
 };
 
 #endif // DATASETTINGSWIDGET_H

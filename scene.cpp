@@ -89,17 +89,15 @@ static void sortedNeighbors(const VNodeRef &n)
     qSort(n->neighborIndices[1]);
 }
 
-static bool greaterDegree(const VNodeRef &l, const VNodeRef &r)
-{
-    return l->neighbors.size() > r->neighbors.size();
-}
-
-inline void updateIndices(Scene::Layer &layer)
+inline bool updateIndices(Scene::Layer &layer)
 {
     int idx = 0;
+    bool change = false;
     for (auto &n : layer) {
+        change = change || (n->indexInLayer != idx);
         n->indexInLayer = idx++;
     }
+    return change;
 }
 
 inline void updateNeighbors(Scene::Layer &layer)
@@ -109,22 +107,15 @@ inline void updateNeighbors(Scene::Layer &layer)
     }
 }
 
-static int moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
-                          bool l, bool r)
+static void insertBestPlace(Scene::Layer &layer, const VNodeRef &n,
+                            bool l, bool r)
 {
     bool b[] = { l, r };
-    int intersections = 0;
+    long long intersections = 0;
     auto j = layer.begin();
     auto best = j;
     auto bestIntersections = intersections;
-    int oldIntersections = 0;
-    auto found = layer.end();
     while (j != layer.end()) {
-        if (n == *j) {
-            oldIntersections = intersections;
-            found = j;
-        }
-
         for (int s = 0; s < 2; s++) {
             if (!b[s]) continue;
             intersections -= intersectionNumber(n->neighborIndices[s],
@@ -133,7 +124,7 @@ static int moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
                                                 n->neighborIndices[s]);
         }
 
-        if (intersections < bestIntersections)
+        if (intersections <= bestIntersections)
         {
             bestIntersections = intersections;
             best = j;
@@ -143,14 +134,7 @@ static int moveBestPlace(Scene::Layer &layer, const VNodeRef &n,
         ++j;
     }
 
-    if (found != layer.end()) {
-        if (bestIntersections == oldIntersections) {
-            return 0;
-        }
-        layer.erase(found);
-    }
     layer.insert(best, n);
-    return bestIntersections - oldIntersections;
 }
 
 static void insertNodes(Scene::Layer &layer, bool requireSorted,
@@ -169,7 +153,6 @@ static void insertNodes(Scene::Layer &layer, bool requireSorted,
             i++;
         }
     }
-    qStableSort(insert.begin(), insert.end(), greaterDegree);
 
     for (auto &n : insert) {
         if (requireSorted) {
@@ -179,7 +162,7 @@ static void insertNodes(Scene::Layer &layer, bool requireSorted,
                 continue;
             }
         }
-        moveBestPlace(layer, n, l, r);
+        insertBestPlace(layer, n, l, r);
     }
 
     updateIndices(layer);
@@ -195,30 +178,22 @@ static void insertNodes(Scene::Layer &layer, bool requireSorted,
     }
 }
 
-static long long greedyMove(Scene::Layer &layer, bool l, bool r)
+static long long intersections(Scene::Layer &layer, bool l, bool r)
 {
-    updateNeighbors(layer);
-
-    long long z, sum = 0;
-    do {
-        static QVector<VNodeRef> queue;
-        queue.resize(0);
-        for (auto &n : layer) {
-            if (n->moveable) {
-                queue.push_back(n);
+    long long result = 0;
+    for (auto i = layer.begin(); i != layer.end(); i++) {
+        for (auto j = layer.begin(); j != i; j++) {
+            if (l) {
+                result += intersectionNumber((*j)->neighborIndices[0],
+                        (*i)->neighborIndices[0]);
+            }
+            if (r) {
+                result += intersectionNumber((*j)->neighborIndices[1],
+                        (*i)->neighborIndices[1]);
             }
         }
-        std::random_shuffle(queue.begin(), queue.end());
-        z = 0;
-        for (auto &n : queue) {
-            z += moveBestPlace(layer, n, l, r);
-        }
-        sum += z;
-    } while (z < 0);
-
-    updateIndices(layer);
-
-    return sum;
+    }
+    return result;
 }
 
 long long Scene::intersections()
@@ -226,19 +201,31 @@ long long Scene::intersections()
     long long result = 0;
     for (auto &l : layers) {
         updateNeighbors(l);
-        VNodeRef p;
-        for (auto &n : l) {
-            if (p) {
-                result += intersectionNumber(p->neighborIndices[0],
-                        n->neighborIndices[0]);
-            }
-            p = n;
-        }
+        result += ::intersections(l, true, false);
     }
     return result;
 }
 
-void Scene::setDataset(const Dataset &ds, bool showIsolated)
+static qreal barycenter(const VNodeRef &a)
+{
+    qreal z = 0;
+    for (auto &i : a->neighborIndices[0]) {
+        z += i;
+    }
+    if (a->neighborIndices[0].isEmpty()) {
+        return a->indexInLayer;
+    } else {
+        return z / a->neighborIndices[0].size();
+    }
+}
+
+inline bool barycenterLess(const VNodeRef &a, const VNodeRef &b)
+{
+    return barycenter(a) < barycenter(b);
+}
+
+void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
+                       bool slow)
 {
     if (ds.hasError()) {
         return;
@@ -273,6 +260,25 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
 
     removeOldNodes();
 
+    if (barycenter) {
+        for (auto &i : layers) {
+            updateNeighbors(i);
+
+            QVector<VNodeRef> v(i.size());
+            qCopy(i.begin(), i.end(), v.begin());
+            qSort(v.begin(), v.end(), barycenterLess);
+            i = QLinkedList<VNodeRef>();
+            for (auto &j : v) {
+                i.append(j);
+            }
+
+            updateIndices(i);
+        }
+
+        absoluteCoords();
+        return;
+    }
+
     for (auto &i : layers) {
         insertNodes(i, true, false, true, true);
     }
@@ -284,44 +290,39 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated)
         insertNodes(i, false, false, true, true);
     }
 
-    for (auto &i : layers) {
-        insertNodes(i, false, true, true, false);
-    }
-    for (auto i = layers.end(); i != layers.begin();) {
-        --i;
-        insertNodes(*i, false, true, true, true);
-    }
-
+    long long cur = intersections(), best = cur;
     int steps = 0;
-    long long z;
     do {
-        z = 0;
-        for (auto &i : layers) {
-            z += greedyMove(i, true, true);
-        }
-        steps++;
-    } while (z < 0);
+        best = cur;
 
-    do {
-        z = 0;
+        Layer *prev = 0;
         for (auto i = layers.end(); i != layers.begin();) {
             --i;
-            z += greedyMove(*i, true, true);
+            insertNodes(*i, false, true, false, true);
+            if (slow) {
+                if (prev) {
+                    insertNodes(*prev, false, true, true, true);
+                }
+                insertNodes(*i, false, true, true, true);
+                prev = &(*i);
+            }
         }
-        steps++;
-    } while (z < 0);
-    qDebug() << "Steps" << steps;
+        prev = 0;
+        for (auto &i : layers) {
+            insertNodes(i, false, true, true, false);
+            if (slow) {
+                if (prev) {
+                    insertNodes(*prev, false, true, true, true);
+                }
+                insertNodes(i, false, true, true, true);
+                prev = &i;
+            }
+        }
 
-    int totalNodes = 0;
-    int totalEdges = 0;
-    for (auto &l : layers) {
-        totalNodes += l.size();
-        for (auto &n : l) {
-            Q_ASSERT(n->indexInLayer >= 0);
-            totalEdges += n->neighbors.size();
-        }
-    }
-    qDebug() << "Nodes:" << totalNodes << "Edges:" << totalEdges;
+        cur = intersections();
+        steps++;
+    } while (cur < best);
+    qDebug() << "Steps" << steps;
 
     absoluteCoords();
 }

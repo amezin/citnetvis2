@@ -34,4 +34,15 @@ DataSettingsWidget::DataSettingsWidget(QWidget *parent) :
     isolatedCheck = new PersistentCheck("ShowIsolated", this);
     isolatedCheck->setValue(true);
     layout->addRow("Show &isolated nodes", isolatedCheck);
+
+    barycenterCheck = new PersistentCheck("UseBarycenter", this);
+    barycenterCheck->setValue(false);
+    layout->addRow("Use barycenter heuristic", barycenterCheck);
+
+    slowCheck = new PersistentCheck("UseSlow", this);
+    slowCheck->setValue(true);
+    layout->addRow("Use slow algorithm", slowCheck);
+
+    connect(barycenterCheck, SIGNAL(toggled(bool)),
+            slowCheck, SLOT(setDisabled(bool)));
 }
