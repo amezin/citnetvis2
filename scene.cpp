@@ -283,13 +283,24 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
     removeOldNodes();
 
     if (barycenter) {
+
+        long long prev, cur = intersections();
+
         for (auto &i : layers) {
-            sortByBarycenters(i, false);
+            updateIndices(i);
         }
-        for (auto i = layers.end(); i != layers.begin();) {
-            --i;
-            sortByBarycenters(*i, true);
-        }
+
+        do {
+            prev = cur;
+            for (auto &i : layers) {
+                sortByBarycenters(i, false);
+            }
+            for (auto i = layers.end(); i != layers.begin();) {
+                --i;
+                sortByBarycenters(*i, true);
+            }
+            cur = intersections();
+        } while (cur < prev);
 
         absoluteCoords();
         return;
