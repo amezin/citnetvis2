@@ -82,19 +82,15 @@ static int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
     return result + b.size() * (a.size() - i);
 }
 
-static void sortedNeighbors(const VNodeRef &n)
+static void sortedNeighbors(const VNodeRef &n, int side)
 {
-    n->neighborIndices[0].resize(0);
-    n->neighborIndices[1].resize(0);
-    for (auto &i : n->neighbors) {
-        if (i->indexInLayer >= 0)
-        {
-            n->neighborIndices[i->currentLayer > n->currentLayer]
-                    .push_back(i->indexInLayer);
+    n->neighborIndices[side].resize(0);
+    for (auto &i : n->neighbors[side]) {
+        if (i->indexInLayer >= 0) {
+            n->neighborIndices[side].push_back(i->indexInLayer);
         }
     }
-    qSort(n->neighborIndices[0]);
-    qSort(n->neighborIndices[1]);
+    qSort(n->neighborIndices[side]);
 }
 
 inline bool updateIndices(Scene::Layer &layer)
@@ -108,10 +104,15 @@ inline bool updateIndices(Scene::Layer &layer)
     return change;
 }
 
-inline void updateNeighbors(Scene::Layer &layer)
+inline void updateNeighbors(Scene::Layer &layer, bool l, bool r)
 {
     for (auto &n : layer) {
-        sortedNeighbors(n);
+        if (l) {
+            sortedNeighbors(n, 0);
+        }
+        if (r) {
+            sortedNeighbors(n, 1);
+        }
     }
 }
 
@@ -148,7 +149,7 @@ static void insertBestPlace(Scene::Layer &layer, const VNodeRef &n,
 static void insertNodes(Scene::Layer &layer, bool requireSorted,
                         bool takeMovable, bool l, bool r)
 {
-    updateNeighbors(layer);
+    updateNeighbors(layer, l, r);
 
     static QVector<VNodeRef> insert;
     insert.resize(0);
@@ -208,7 +209,7 @@ long long Scene::intersections()
 {
     long long result = 0;
     for (auto &l : layers) {
-        updateNeighbors(l);
+        updateNeighbors(l, true, false);
         result += ::intersections(l, true, false);
     }
     return result;
@@ -241,7 +242,7 @@ private:
 
 static void sortByBarycenters(Scene::Layer &i, bool dir)
 {
-    updateNeighbors(i);
+    updateNeighbors(i, !dir, dir);
 
     QVector<VNodeRef> v(i.size());
     qCopy(i.begin(), i.end(), v.begin());
@@ -380,10 +381,8 @@ qreal Scene::radius(const VNodeRef &p) const
 qreal Scene::minLayerWidth(const VNodeRef &p, bool prev) const
 {
     qreal w = p->size;
-    for (auto &n : p->neighbors) {
-        if ((n->currentLayer < p->currentLayer) == prev) {
-            w = qMax(w, qAbs(p->y - n->y) / parameters[MaxEdgeSlope]);
-        }
+    for (auto &n : p->neighbors[!prev]) {
+        w = qMax(w, qAbs(p->y - n->y) / parameters[MaxEdgeSlope]);
     }
     return w;
 }
@@ -391,16 +390,18 @@ qreal Scene::minLayerWidth(const VNodeRef &p, bool prev) const
 static void computeForces(Scene::Layer &l)
 {
     for (auto &n : l) {
-        if (n->neighbors.isEmpty()) {
+        if (n->neighbors[0].isEmpty() && n->neighbors[1].isEmpty()) {
             n->newY = n->y;
             continue;
         }
 
         n->newY = 0;
-        for (auto &r : n->neighbors) {
-            n->newY += r->y;
+        for (int i = 0; i < 2; i++) {
+            for (auto &r : n->neighbors[i]) {
+                n->newY += r->y;
+            }
         }
-        n->newY /= n->neighbors.size();
+        n->newY /= n->neighbors[0].size() + n->neighbors[1].size();
     }
 }
 
@@ -698,10 +699,7 @@ void Scene::build()
                 }
                 addNodeMarker(n, radius(n), color);
             }
-            for (auto &r : n->neighbors) {
-                if (n->currentLayer > r->currentLayer) {
-                    continue;
-                }
+            for (auto &r : n->neighbors[1]) {
                 QColor edgeColor = n->edgeColors[r];
                 edgeColor.setHsvF(edgeColor.hueF(), parameters[EdgeSaturation],
                                   parameters[EdgeValue]);
@@ -989,7 +987,8 @@ void Scene::clearAdjacencyData()
 {
     for (auto i = layers.begin(); i != layers.end(); i++) {
         for (auto j = i->begin(); j != i->end(); j++) {
-            (*j)->neighbors.clear();
+            (*j)->neighbors[0].clear();
+            (*j)->neighbors[1].clear();
             (*j)->edgeColors.clear();
             (*j)->moveable = false;
         }
@@ -1146,9 +1145,9 @@ void Scene::addEdge(const Publication &a, const Publication &b)
         }
 
         if (prev) {
-            prev->neighbors.push_back(found);
+            prev->neighbors[1].push_back(found);
             prev->edgeColors[found] = publicationInfo[b.iri()].color;
-            found->neighbors.push_back(prev);
+            found->neighbors[0].push_back(prev);
             found->edgeColors[prev] = publicationInfo[b.iri()].color;
         }
 

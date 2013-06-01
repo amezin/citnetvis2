@@ -19,7 +19,7 @@ struct VNode : public QSharedData
 
     Identifier publication, edgeStart, edgeEnd;
 
-    QVector<VNodeRef> neighbors;
+    QVector<VNodeRef> neighbors[2];
     QHash<VNodeRef, QColor> edgeColors;
     int indexInLayer;
 
