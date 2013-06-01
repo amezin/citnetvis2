@@ -20,9 +20,6 @@ TEMPLATE = app
 
 QMAKE_CXXFLAGS += -std=c++0x
 
-QMAKE_CXXFLAGS_RELEASE += -O3 -flto
-QMAKE_LFLAGS_RELEASE += -O3 -flto
-
 SOURCES += main.cpp\
         mainwindow.cpp \
     queryeditor.cpp \
