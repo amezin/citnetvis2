@@ -54,7 +54,7 @@ VisualisationSettingsWidget::VisualisationSettingsWidget(Scene *scene,
     addSpinBox(Scene::AbsoluteCoordsTime, "Timeout for for force-based algo",
                0.0, 10.0);
     changesSize.insert(Scene::AbsoluteCoordsTime);
-    addSpinBox(Scene::AbsoluteCoordsIter, "Number of iterations", 1, 256, 0);
+    addSpinBox(Scene::AbsoluteCoordsIter, "Number of iterations", 0, 256, 0);
     changesSize.insert(Scene::AbsoluteCoordsIter);
 
     addSpinBox(Scene::YearFontSize, "Font size for year labels", 5.0, 32.0);
