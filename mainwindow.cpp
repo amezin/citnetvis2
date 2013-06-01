@@ -286,11 +286,14 @@ void MainWindow::showGraph()
                       settingsWidget->useSlowAlgorithm());
 
     static const QString infoText("Publications: %1 Edge segments: %2 "
-                                  "Intersections: %3");
+                                  "Intersections: %3 Improvement steps: %4 "
+                                  "Time: %5");
     statusLabel->setText(infoText.arg(
                              QString::number(scene->publicationCount()),
                              QString::number(scene->edgeSegmentCount()),
-                             QString::number(scene->intersections())));
+                             QString::number(scene->intersections()),
+                             QString::number(scene->improvementSteps()),
+                             QString::number(scene->totalSeconds())));
 
     nodeWidget->setEndpoint(settingsWidget->endpointUrl(),
                             dataset->queryParameters());

@@ -261,12 +261,17 @@ static void sortByBarycenters(Scene::Layer &i, bool dir)
     updateIndices(i);
 }
 
+static const qreal msecsPerSec = 1000;
+
 void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
                        bool slow)
 {
     if (ds.hasError()) {
         return;
     }
+
+    QElapsedTimer totalTimer;
+    totalTimer.start();
 
     publications = ds.publications();
     qDebug() << "Publications:" << publications.size();
@@ -333,7 +338,7 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
     }
 
     long long cur = intersections(), best = cur;
-    int steps = 0;
+    steps = 0;
     do {
         best = cur;
 
@@ -367,6 +372,8 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
     qDebug() << "Steps" << steps;
 
     absoluteCoords();
+
+    timeElapsed = totalTimer.elapsed() / msecsPerSec;
 }
 
 qreal Scene::radius(const PublicationInfo &p) const
@@ -410,8 +417,6 @@ static void computeForces(Scene::Layer &l)
         n->newY /= n->neighbors[0].size() + n->neighbors[1].size();
     }
 }
-
-static const qreal msecsPerSec = 1000;
 
 qreal Scene::applyForces(Scene::Layer &l)
 {

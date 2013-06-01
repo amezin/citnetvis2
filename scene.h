@@ -60,6 +60,8 @@ public:
 
     int edgeSegmentCount() const { return edgeLines.size(); }
     int publicationCount() const { return nodeMarkers.size(); }
+    int improvementSteps() const { return steps; }
+    double totalSeconds() const { return timeElapsed; }
 
     void placeLabels();
     void absoluteCoords();
@@ -127,6 +129,9 @@ private:
     QVector<QSharedPointer<QGraphicsLineItem> > yearLines;
     QHash<QString, QSharedPointer<QGraphicsSimpleTextItem> >
     yearLabels, oldYearLabels;
+
+    int steps;
+    qreal timeElapsed;
 };
 
 #endif // SCENE_H
