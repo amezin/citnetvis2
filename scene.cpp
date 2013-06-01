@@ -116,21 +116,27 @@ inline void updateNeighbors(Scene::Layer &layer, bool l, bool r)
     }
 }
 
+inline int swapNodesDiff(const VNodeRef &a, const VNodeRef &b, int side)
+{
+    return intersectionNumber(b->neighborIndices[side],
+                              a->neighborIndices[side])
+            - intersectionNumber(a->neighborIndices[side],
+                                 b->neighborIndices[side]);
+}
+
 static void insertBestPlace(Scene::Layer &layer, const VNodeRef &n,
                             bool l, bool r)
 {
-    bool b[] = { l, r };
     long long intersections = 0;
     auto j = layer.begin();
     auto best = j;
     auto bestIntersections = intersections;
     while (j != layer.end()) {
-        for (int s = 0; s < 2; s++) {
-            if (!b[s]) continue;
-            intersections -= intersectionNumber(n->neighborIndices[s],
-                                                (*j)->neighborIndices[s]);
-            intersections += intersectionNumber((*j)->neighborIndices[s],
-                                                n->neighborIndices[s]);
+        if (l) {
+            intersections += swapNodesDiff(n, *j, 0);
+        }
+        if (r) {
+            intersections += swapNodesDiff(n, *j, 1);
         }
 
         if (intersections <= bestIntersections)
