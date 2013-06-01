@@ -61,17 +61,25 @@ Scene::Scene(QObject *parent) :
     setItemIndexMethod(QGraphicsScene::NoIndex);
 }
 
-inline int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
+static int intersectionNumber(const QVector<int> &a, const QVector<int> &b)
 {
+    if (a.isEmpty() || b.isEmpty() || a.back() <= b.front()) {
+        return 0;
+    }
+    if (b.back() < a.front()) {
+        return a.size() * b.size();
+    }
+
     int result = 0;
-    int j = 0;
-    for (int i = 0; i < a.size(); i++) {
+    int i = 0, j = 0;
+    while (i < a.size() && j < b.size()) {
         while (j < b.size() && b[j] < a[i]) {
             j++;
         }
         result += j;
+        i++;
     }
-    return result;
+    return result + b.size() * (a.size() - i);
 }
 
 static void sortedNeighbors(const VNodeRef &n)
