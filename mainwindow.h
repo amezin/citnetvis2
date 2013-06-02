@@ -64,6 +64,8 @@ private:
     Scene *scene;
     QFileDialog *exportDialog;
     QLabel *statusLabel;
+
+    QMap<QString, QString> imageFormats;
 };
 
 #endif // MAINWINDOW_H

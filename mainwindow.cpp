@@ -8,6 +8,8 @@
 #include <QMenu>
 #include <QDebug>
 #include <QSvgGenerator>
+#include <QImageWriter>
+#include <QMessageBox>
 
 #include "dockbutton.h"
 #include "persistentwidget.h"
@@ -141,9 +143,27 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
 
     exportDialog = new QFileDialog(this);
     exportDialog->setAcceptMode(QFileDialog::AcceptSave);
-    exportDialog->setDefaultSuffix("svg");
-    exportDialog->setNameFilters(QStringList()
-                                 << "SVG images (*.svg)" << "All files (*)");
+
+    auto imageFormatsRaw = QImageWriter::supportedImageFormats();
+    for (auto &format : imageFormatsRaw) {
+        QString fmtString(format);
+        imageFormats.insert(fmtString.toUpper(), "." + fmtString.toLower());
+    }
+    QStringList filters;
+    static const QString filterFormat("%1 image (*%2)");
+    if (imageFormats.contains("PNG")) {
+        filters << filterFormat.arg("PNG", ".png");
+    }
+    for (auto i = imageFormats.begin(); i != imageFormats.end(); i++) {
+        if (i.key() == "PNG") {
+            continue;
+        }
+        filters << filterFormat.arg(i.key(), i.value());
+    }
+
+    filters << "SVG vector graphics (*.svg)";
+    filters << "All files (*)";
+    exportDialog->setNameFilters(filters);
 }
 
 QScrollArea *MainWindow::makeScrollable(QWidget *widget)
@@ -316,18 +336,39 @@ void MainWindow::exportImage()
     if (!exportDialog->exec() || exportDialog->selectedFiles().size() != 1) {
         return;
     }
+    auto file = exportDialog->selectedFiles().first();
 
-    QSvgGenerator svg;
-    svg.setFileName(exportDialog->selectedFiles().first());
-    svg.setResolution(logicalDpiY());
     scene->finishAnimations();
     scene->clearSelection();
     auto prevRect = scene->sceneRect();
     scene->setSceneRect(scene->itemsBoundingRect());
-    svg.setSize(scene->sceneRect().size().toSize());
 
-    QPainter painter(&svg);
-    scene->render(&painter);
+    bool isImageFormat = false;
+    for (auto &format : imageFormats) {
+        if (file.endsWith(format, Qt::CaseInsensitive)) {
+            isImageFormat = true;
+            break;
+        }
+    }
+
+    if (isImageFormat) {
+        QImage image(scene->sceneRect().size().toSize(), QImage::Format_RGB888);
+        QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing);
+        scene->render(&painter);
+
+        image.save(file);
+    } else if (file.endsWith(".svg", Qt::CaseInsensitive)) {
+        QSvgGenerator svg;
+        svg.setFileName(file);
+        svg.setResolution(logicalDpiY());
+        svg.setSize(scene->sceneRect().size().toSize());
+    
+        QPainter painter(&svg);
+        scene->render(&painter);
+    } else {
+        QMessageBox::critical(this, "Error", "Unknown image format");
+    }
 
     scene->setSceneRect(prevRect);
 }
