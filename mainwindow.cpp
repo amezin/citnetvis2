@@ -80,9 +80,10 @@ MainWindow::MainWindow(QSettings *settings, QWidget *parent)
     stopAction->setShortcut(QKeySequence::Quit);
     stopAction->setEnabled(false);
 
-    auto clearAction = toolBar->addAction("Clear");
+    clearAction = toolBar->addAction("Clear");
     clearAction->setIcon(QIcon::fromTheme("document-new"));
     clearAction->setShortcut(QKeySequence::New);
+    clearAction->setEnabled(false);
     connect(clearAction, SIGNAL(triggered()), SLOT(clear()));
 
     auto exportAction = toolBar->addAction("Export");
@@ -300,6 +301,7 @@ void MainWindow::executeQuery()
 
 void MainWindow::showGraph()
 {
+    clearAction->setEnabled(true);
     stopAction->setDisabled(true);
     scene->setDataset(*dataset,
                       settingsWidget->useBarycenterHeuristic(),

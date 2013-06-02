@@ -61,6 +61,7 @@ private:
     QSettings *settings;
     Dataset *dataset;
     QAction *stopAction;
+    QAction *clearAction;
     Scene *scene;
     QFileDialog *exportDialog;
     QLabel *statusLabel;
