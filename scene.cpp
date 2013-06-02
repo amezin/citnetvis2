@@ -11,6 +11,7 @@
 #include <QFontMetricsF>
 #include <QElapsedTimer>
 #include <QGraphicsView>
+#include <QGraphicsSceneMouseEvent>
 
 #include <QtAlgorithms>
 #include <qmath.h>
@@ -23,7 +24,7 @@
 
 static const qreal minSceneCoordDelta = 0.1;
 
-Scene::PublicationInfo::PublicationInfo() : reverseDeg(0)
+Scene::PublicationInfo::PublicationInfo() : reverseDeg(0), showLabel(false)
 {
     color = QColor::fromHsvF(qrand() / static_cast<qreal>(RAND_MAX), 1, 1);
 }
@@ -902,8 +903,13 @@ void Scene::placeLabels()
     do {
         bool change = false;
         for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
-            auto old = labelRects[n.key()];
-            labelRects.remove(n.key());
+            if (!publicationInfo[n.key()->publication].showLabel) {
+                continue;
+            }
+
+            auto oldIter = labelRects.find(n.key());
+            auto old = *oldIter;
+            labelRects.erase(oldIter);
             placeLabel(n.key(), metrics.boundingRect(n.key()->label));
             if (labelRects[n.key()] != old) {
                 change = true;
@@ -914,12 +920,12 @@ void Scene::placeLabels()
         }
     } while (timer.elapsed() / msecsPerSec < parameters[LabelPlacementTime]);
 
-    for (auto n = nodeRects.begin(); n != nodeRects.end(); n++) {
+    for (auto n = labelRects.begin(); n != labelRects.end(); n++) {
         QColor pubColor;
         pubColor.setHsvF(n.key()->color.hueF(), parameters[TextSaturation],
                          parameters[TextValue]);
-        finalBounds = finalBounds.united(labelRects[n.key()]);
-        addLabel(n.key(), labelRects[n.key()].topLeft(), font, pubColor);
+        finalBounds = finalBounds.united(*n);
+        addLabel(n.key(), n->topLeft(), font, pubColor);
     }
 
     animateItems(oldLabels, labels, this);
@@ -1166,5 +1172,34 @@ void Scene::addEdge(const Publication &a, const Publication &b)
         }
 
         prev = found;
+    }
+}
+
+void Scene::mousePressEvent(QGraphicsSceneMouseEvent *event)
+{
+    if (event->modifiers() != Qt::NoModifier) {
+        event->accept();
+
+        auto item = itemAt(event->scenePos());
+        if (!item) {
+            return;
+        }
+
+        if (item->data(0).isNull() || !item->data(0).isValid()) {
+            return;
+        }
+
+        auto id = item->data(0).toString();
+        qDebug() << "Clicked" << id;
+
+        auto found = publicationInfo.find(Identifier(id));
+        if (found == publicationInfo.end()) {
+            return;
+        }
+
+        found->showLabel = !found->showLabel;
+        placeLabels();
+    } else {
+        QGraphicsScene::mousePressEvent(event);
     }
 }

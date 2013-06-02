@@ -69,6 +69,9 @@ public:
     void finishAnimations();
     long long intersections();
 
+protected:
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent *event);
+
 private:
     typedef QPair<QString, int> LayerId;
 
@@ -95,6 +98,7 @@ private:
 
         QColor color;
         int reverseDeg;
+        bool showLabel;
     };
     qreal radius(const PublicationInfo &) const;
     qreal radius(const VNodeRef &) const;
