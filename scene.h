@@ -22,7 +22,7 @@ class Scene : public QGraphicsScene
 public:
     explicit Scene(QObject *parent = 0);
     
-    void setDataset(const Dataset &, bool showIsolated,
+    void setDataset(const Dataset &,
                     bool barycenterHeuristic = false,
                     bool slow = false);
 

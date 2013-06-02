@@ -301,7 +301,7 @@ void MainWindow::executeQuery()
 void MainWindow::showGraph()
 {
     stopAction->setDisabled(true);
-    scene->setDataset(*dataset, settingsWidget->showIsolated(),
+    scene->setDataset(*dataset,
                       settingsWidget->useBarycenterHeuristic(),
                       settingsWidget->useSlowAlgorithm());
 
@@ -328,7 +328,7 @@ void MainWindow::selectedNodeChanged()
 void MainWindow::clear()
 {
     dataset->clear();
-    scene->setDataset(*dataset, false);
+    scene->setDataset(*dataset);
 }
 
 void MainWindow::exportImage()

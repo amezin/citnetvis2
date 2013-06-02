@@ -31,10 +31,6 @@ DataSettingsWidget::DataSettingsWidget(QWidget *parent) :
     recursiveCheck->setValue(true);
     layout->addRow("Show &referenced nodes", recursiveCheck);
 
-    isolatedCheck = new PersistentCheck("ShowIsolated", this);
-    isolatedCheck->setValue(true);
-    layout->addRow("Show &isolated nodes", isolatedCheck);
-
     barycenterCheck = new PersistentCheck("UseBarycenter", this);
     barycenterCheck->setValue(false);
     layout->addRow("Use barycenter heuristic", barycenterCheck);

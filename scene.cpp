@@ -264,8 +264,7 @@ static void sortByBarycenters(Scene::Layer &i, bool dir)
 
 static const qreal msecsPerSec = 1000;
 
-void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
-                       bool slow)
+void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
 {
     if (ds.hasError()) {
         return;
@@ -297,9 +296,7 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
             }
             addEdge(i, *k);
         }
-        if (showIsolated) {
-            insertNode(i.iri(), LayerId(i.date, subLevels[i.iri()]));
-        }
+        insertNode(i.iri(), LayerId(i.date, subLevels[i.iri()]));
     }
 
     removeOldNodes();
