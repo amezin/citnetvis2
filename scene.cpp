@@ -540,6 +540,7 @@ void Scene::addNodeMarker(const VNodeRef &n, qreal r, const QColor &color)
         return;
     }
     QRectF rect(n->x - r, n->y - r, r * 2, r * 2);
+    nodeRects.insert(n, rect);
     finalBounds = finalBounds.united(rect);
 
     QSharedPointer<QGraphicsEllipseItem> ptr;
@@ -702,7 +703,7 @@ void Scene::build()
     nodeMarkers.swap(oldNodeMarkers);
 
     finalBounds = QRectF();
-
+    nodeRects.clear();
     for (auto &l : layers) {
         for (auto &n : l) {
             if (n->publication) {
@@ -881,18 +882,7 @@ qreal Scene::placeLabel(const VNodeRef &n, QRectF rect)
 void Scene::placeLabels()
 {
     labels.swap(oldLabels);
-
     labelRects.clear();
-    nodeRects.clear();
-    for (auto &l : layers) {
-        for (auto &n : l) {
-            if (n->publication) {
-                auto off = radius(n) / sqrtOf2;
-                QRectF nodeRect(n->x - off, n->y - off, off * 2, off * 2);
-                nodeRects.insert(n, nodeRect);
-            }
-        }
-    }
 
     QFont font;
     font.setPointSizeF(parameters[FontSize]);
