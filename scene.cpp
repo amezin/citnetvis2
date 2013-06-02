@@ -272,6 +272,7 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
 
     QElapsedTimer totalTimer;
     totalTimer.start();
+    steps = 0;
 
     publications = ds.publications();
     qDebug() << "Publications:" << publications.size();
@@ -320,9 +321,12 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
                 sortByBarycenters(*i, true);
             }
             cur = intersections();
+            steps++;
         } while (cur < prev);
 
         absoluteCoords();
+
+        timeElapsed = totalTimer.elapsed() / msecsPerSec;
         return;
     }
 
@@ -338,7 +342,6 @@ void Scene::setDataset(const Dataset &ds, bool showIsolated, bool barycenter,
     }
 
     long long cur = intersections(), best = cur;
-    steps = 0;
     do {
         best = cur;
 
