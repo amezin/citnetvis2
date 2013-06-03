@@ -296,10 +296,6 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
 
     removeOldNodes();
 
-    for (auto &i : layers) {
-        updateIndices(i);
-    }
-
     if (barycenter) {
         long long prev, cur = intersections();
         do {
