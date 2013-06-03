@@ -125,73 +125,68 @@ inline int swapNodesDiff(const VNodeRef &a, const VNodeRef &b, int side)
                                  b->neighborIndices[side]);
 }
 
-static void insertBestPlace(Scene::Layer &layer, const VNodeRef &n,
-                            bool l, bool r)
+static void insertNodes(Scene::Layer &layer, bool l, bool r,
+                        bool countAll = false)
 {
-    long long intersections = 0;
-    auto j = layer.begin();
-    auto best = j;
-    auto bestIntersections = intersections;
-    while (j != layer.end()) {
-        if (l) {
-            intersections += swapNodesDiff(n, *j, 0);
-        }
-        if (r) {
-            intersections += swapNodesDiff(n, *j, 1);
-        }
-
-        if (intersections <= bestIntersections)
-        {
-            bestIntersections = intersections;
-            best = j;
-            ++best;
-        }
-
-        ++j;
+    for (auto &n : layer) {
+        n->updated = !n->moveable;
     }
 
-    layer.insert(best, n);
-}
-
-static void insertNodes(Scene::Layer &layer, bool requireSorted,
-                        bool takeMovable, bool l, bool r)
-{
-    updateNeighbors(layer, l, r);
-
-    static QVector<VNodeRef> insert;
-    insert.resize(0);
-    for (auto i = layer.begin(); i != layer.end(); ) {
-        if ((*i)->indexInLayer < 0 || (takeMovable && (*i)->moveable))
-        {
-            insert.push_back(*i);
-            i = layer.erase(i);
-        } else {
-            i++;
+    int idx = 0;
+    for (auto n = layer.begin(); n != layer.end(); ) {
+        if ((*n)->updated) {
+            n++;
+            idx++;
+            continue;
         }
-    }
 
-    for (auto &n : insert) {
-        if (requireSorted) {
-            if ((!l || n->neighborIndices[0].isEmpty()) &&
-                    (!r || n->neighborIndices[1].isEmpty()))
+        long long intersections = 0;
+        auto j = layer.begin();
+        auto best = j;
+        auto next = n + 1;
+        auto bestIntersections = intersections;
+        int jIdx = 0, bestIdx = 0;
+        while (j != layer.end()) {
+            if (countAll || (*j)->updated) {
+                if (l) {
+                    intersections += swapNodesDiff(*n, *j, 0);
+                }
+                if (r) {
+                    intersections += swapNodesDiff(*n, *j, 1);
+                }
+            }
+
+            if (j != n) {
+                ++jIdx;
+            }
+
+            ++j;
+            if (intersections < bestIntersections ||
+                    (intersections == bestIntersections &&
+                     qAbs(bestIdx - idx) >= qAbs(jIdx - idx)))
             {
-                continue;
+                bestIntersections = intersections;
+                best = j;
+                bestIdx = jIdx;
             }
         }
-        insertBestPlace(layer, n, l, r);
+
+        (*n)->updated = true;
+        if (n != best && next != best) {
+            layer.insert(best, *n);
+            n = layer.erase(n);
+            if (bestIdx < idx) {
+                idx++;
+            }
+        } else {
+            n = next;
+            idx++;
+        }
     }
+
+    Q_ASSERT(idx == layer.size());
 
     updateIndices(layer);
-
-    if (requireSorted) {
-        for (auto &n : insert) {
-            if ((!l || n->neighborIndices[0].isEmpty()) &&
-                    (!r || n->neighborIndices[1].isEmpty()))
-            {
-                layer.append(n);
-            }
-        }
-    }
 }
 
 static long long intersections(Scene::Layer &layer, bool l, bool r)
@@ -301,14 +296,12 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
 
     removeOldNodes();
 
+    for (auto &i : layers) {
+        updateIndices(i);
+    }
+
     if (barycenter) {
-
         long long prev, cur = intersections();
-
-        for (auto &i : layers) {
-            updateIndices(i);
-        }
-
         do {
             prev = cur;
             for (auto &i : layers) {
@@ -329,47 +322,33 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
     }
 
     for (auto &i : layers) {
-        insertNodes(i, true, false, true, true);
-    }
-    for (auto i = layers.end(); i != layers.begin();) {
-        --i;
-        insertNodes(*i, true, false, true, true);
-    }
-    for (auto &i : layers) {
-        insertNodes(i, false, false, true, true);
+        updateNeighbors(i, true, false);
+        insertNodes(i, true, false, false);
     }
 
-    long long cur = intersections(), best = cur;
-    do {
-        best = cur;
-
-        Layer *prev = 0;
-        for (auto i = layers.end(); i != layers.begin();) {
-            --i;
-            insertNodes(*i, false, true, false, true);
-            if (slow) {
-                if (prev) {
-                    insertNodes(*prev, false, true, true, true);
+    long long cur = intersections(), best;
+    for (int b = 0; b <= 1; b++) {
+        do {
+            best = cur;
+            for (auto i = layers.end(); i != layers.begin(); ) {
+                --i;
+                updateNeighbors(*i, slow, true);
+                insertNodes(*i, false, true, b);
+                if (slow) {
+                    insertNodes(*i, true, true, b);
                 }
-                insertNodes(*i, false, true, true, true);
-                prev = &(*i);
             }
-        }
-        prev = 0;
-        for (auto &i : layers) {
-            insertNodes(i, false, true, true, false);
-            if (slow) {
-                if (prev) {
-                    insertNodes(*prev, false, true, true, true);
+            for (auto &i : layers) {
+                updateNeighbors(i, true, slow);
+                insertNodes(i, true, false, b);
+                if (slow) {
+                    insertNodes(i, true, true, b);
                 }
-                insertNodes(i, false, true, true, true);
-                prev = &i;
             }
-        }
-
-        cur = intersections();
-        steps++;
-    } while (cur < best);
+            cur = intersections();
+            steps++;
+        } while (cur < best);
+    }
     qDebug() << "Steps" << steps;
 
     absoluteCoords();
