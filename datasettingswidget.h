@@ -20,11 +20,13 @@ public:
     bool loadReferences() const { return recursiveCheck->value(); }
     bool useBarycenterHeuristic() const { return barycenterCheck->value(); }
     bool useSlowAlgorithm() const { return slowCheck->value(); }
+    bool randomize() const { return randomizeCheck->value(); }
 
 private:
     PersistentField *endpointUrlEdit, *dateEdit, *titleEdit, *referenceEdit,
     *dateRegExEdit;
-    PersistentCheck *recursiveCheck, *barycenterCheck, *slowCheck;
+    PersistentCheck *recursiveCheck, *barycenterCheck, *slowCheck,
+    *randomizeCheck;
 };
 
 #endif // DATASETTINGSWIDGET_H

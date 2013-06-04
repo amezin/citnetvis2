@@ -58,6 +58,8 @@ Scene::Scene(QObject *parent) :
     parameters[YearLineWidth] = 1;
     parameters[YearFontSize] = 10;
 
+    randomize = false;
+
     setBackgroundBrush(QColor::fromRgbF(1, 1, 1));
     setItemIndexMethod(QGraphicsScene::NoIndex);
 }
@@ -125,8 +127,7 @@ inline int swapNodesDiff(const VNodeRef &a, const VNodeRef &b, int side)
                                  b->neighborIndices[side]);
 }
 
-static void insertNodes(Scene::Layer &layer, bool l, bool r,
-                        bool countAll = false)
+static void insertNodes(Scene::Layer &layer, bool l, bool twosided = false)
 {
     for (auto &n : layer) {
         n->updated = !n->moveable;
@@ -140,19 +141,19 @@ static void insertNodes(Scene::Layer &layer, bool l, bool r,
             continue;
         }
 
-        long long intersections = 0;
+        long long left = 0, right = 0;
         auto j = layer.begin();
         auto best = j;
         auto next = n + 1;
-        auto bestIntersections = intersections;
+        auto bestLeft = left, bestRight = right;
         int jIdx = 0, bestIdx = 0;
         while (j != layer.end()) {
-            if (countAll || (*j)->updated) {
-                if (l) {
-                    intersections += swapNodesDiff(*n, *j, 0);
+            if ((*j)->updated) {
+                if (l || twosided) {
+                    left += swapNodesDiff(*n, *j, 0);
                 }
-                if (r) {
-                    intersections += swapNodesDiff(*n, *j, 1);
+                if (!l || twosided) {
+                    right += swapNodesDiff(*n, *j, 1);
                 }
             }
 
@@ -161,11 +162,15 @@ static void insertNodes(Scene::Layer &layer, bool l, bool r,
             }
 
             ++j;
-            if (intersections < bestIntersections ||
-                    (intersections == bestIntersections &&
-                     qAbs(bestIdx - idx) >= qAbs(jIdx - idx)))
+            if (left + right < bestLeft + bestRight ||
+                    (left + right == bestLeft + bestRight &&
+                     ((l && left < bestLeft) ||
+                      (!l && right < bestRight) ||
+                      (((l && left == bestLeft) || (!l && right == bestRight))
+                       && qAbs(bestIdx - idx) >= qAbs(jIdx - idx)))))
             {
-                bestIntersections = intersections;
+                bestLeft = left;
+                bestRight = right;
                 best = j;
                 bestIdx = jIdx;
             }
@@ -297,17 +302,26 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
     removeOldNodes();
 
     if (barycenter) {
-        long long prev, cur = intersections();
+        for (auto &i : layers) {
+            sortByBarycenters(i, false);
+        }
+
+        long long prev = 0, cur = 0;
+        if (slow) {
+            cur = intersections();
+        }
         do {
             prev = cur;
-            for (auto &i : layers) {
-                sortByBarycenters(i, false);
-            }
             for (auto i = layers.end(); i != layers.begin();) {
                 --i;
                 sortByBarycenters(*i, true);
             }
-            cur = intersections();
+            for (auto &i : layers) {
+                sortByBarycenters(i, false);
+            }
+            if (slow) {
+                cur = intersections();
+            }
             steps++;
         } while (cur < prev);
 
@@ -319,31 +333,33 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
 
     for (auto &i : layers) {
         updateNeighbors(i, true, false);
-        insertNodes(i, true, false, false);
+        insertNodes(i, true);
     }
 
-    long long cur = intersections(), best;
-    for (int b = 0; b <= 1; b++) {
+    long long cur = 0, best = 0;
+    if (slow) {
+        cur = intersections();
+    }
+
+    for (bool twosided = false; ; twosided = true) {
         do {
             best = cur;
             for (auto i = layers.end(); i != layers.begin(); ) {
                 --i;
-                updateNeighbors(*i, slow, true);
-                insertNodes(*i, false, true, b);
-                if (slow) {
-                    insertNodes(*i, true, true, b);
-                }
+                updateNeighbors(*i, twosided, true);
+                insertNodes(*i, false, twosided);
             }
             for (auto &i : layers) {
-                updateNeighbors(i, true, slow);
-                insertNodes(i, true, false, b);
-                if (slow) {
-                    insertNodes(i, true, true, b);
-                }
+                updateNeighbors(i, true, twosided);
+                insertNodes(i, true, twosided);
             }
-            cur = intersections();
+            if (slow) {
+                cur = intersections();
+            }
             steps++;
-        } while (cur < best);
+        } while (best - cur > cur / (twosided ? 500 : 50));
+
+        if (twosided) break;
     }
     qDebug() << "Steps" << steps;
 
@@ -363,6 +379,7 @@ qreal Scene::radius(const VNodeRef &p) const
     if (!p->publication) {
         return parameters[EdgeThickness] / 2;
     }
+    Q_ASSERT(publications.contains(p->publication));
     Q_ASSERT(publicationInfo.contains(p->publication));
     return radius(publicationInfo[p->publication]);
 }
@@ -973,6 +990,7 @@ void Scene::clearAdjacencyData()
             (*j)->neighbors[1].clear();
             (*j)->edgeColors.clear();
             (*j)->moveable = false;
+            (*j)->updated = false;
         }
     }
 }
@@ -1054,9 +1072,7 @@ void Scene::removeOldNodes()
     for (auto i = layers.begin(); i != layers.end(); i++) {
         QMutableLinkedListIterator<VNodeRef> j(*i);
         while (j.hasNext()) {
-            if (j.next()->updated) {
-                j.value()->updated = false;
-            } else {
+            if (!j.next()->updated) {
                 j.remove();
                 n++;
             }
@@ -1072,6 +1088,7 @@ VNodeRef Scene::insertNode(Identifier publication, const LayerId &layerId,
     QColor color;
     QString label;
     if (publication) {
+        Q_ASSERT(publicationInfo.contains(publication));
         color = publicationInfo[publication].color;
         label = publications.find(publication)->nonEmptyTitle();
     }
@@ -1096,7 +1113,12 @@ VNodeRef Scene::insertNode(Identifier publication, const LayerId &layerId,
         expectedRef->edgeStart = edgeStart;
         expectedRef->edgeEnd = edgeEnd;
         expectedRef->currentLayer = layerId;
-        layer.prepend(expectedRef);
+
+        auto it = layer.begin();
+        if (randomize) {
+            for (int pos = qrand() % (layer.size() + 1); pos; pos--) it++;
+        }
+        layer.insert(it, expectedRef);
         return expectedRef;
     } else {
         (*found)->color = color;

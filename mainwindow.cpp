@@ -303,6 +303,7 @@ void MainWindow::showGraph()
 {
     clearAction->setEnabled(true);
     stopAction->setDisabled(true);
+    scene->randomize = settingsWidget->randomize();
     scene->setDataset(*dataset,
                       settingsWidget->useBarycenterHeuristic(),
                       settingsWidget->useSlowAlgorithm());

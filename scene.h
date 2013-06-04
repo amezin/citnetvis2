@@ -53,6 +53,7 @@ public:
         NParameters
     };
     qreal parameters[NParameters];
+    bool randomize;
 
     typedef QLinkedList<VNodeRef> Layer;
 

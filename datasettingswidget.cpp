@@ -33,12 +33,13 @@ DataSettingsWidget::DataSettingsWidget(QWidget *parent) :
 
     barycenterCheck = new PersistentCheck("UseBarycenter", this);
     barycenterCheck->setValue(false);
-    layout->addRow("Use barycenter heuristic", barycenterCheck);
+    layout->addRow("&Barycenter heuristic", barycenterCheck);
 
     slowCheck = new PersistentCheck("UseSlow", this);
     slowCheck->setValue(true);
-    layout->addRow("Use slow algorithm", slowCheck);
+    layout->addRow("&Iterative improvement", slowCheck);
 
-    connect(barycenterCheck, SIGNAL(toggled(bool)),
-            slowCheck, SLOT(setDisabled(bool)));
+    randomizeCheck = new PersistentCheck("Randomize", this);
+    randomizeCheck->setValue(false);
+    layout->addRow("Random insertion", randomizeCheck);
 }
