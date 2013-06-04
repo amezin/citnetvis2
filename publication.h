@@ -15,7 +15,8 @@ public:
 
     const Identifier &iri() const { return id; }
 
-    QString date, title;
+    QString title;
+    QSet<QString> dates;
     QSet<Identifier> references;
     bool recurse;
 

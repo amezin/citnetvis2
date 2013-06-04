@@ -81,7 +81,7 @@ private:
     VNodeRef insertNode(Identifier publication, const LayerId &layerId,
                         Identifier edgeStart = Identifier(),
                         Identifier edgeEnd = Identifier());
-    void addEdge(const Publication &a, const Publication &b);
+    void addEdge(const Identifier &a, const Identifier &b);
     void removeOldNodes();
     void fixPublicationInfoAndDate();
     void findEdgesInsideLayers();
@@ -97,6 +97,7 @@ private:
     {
         PublicationInfo();
 
+        QString date;
         QColor color;
         int reverseDeg;
         bool showLabel;

@@ -271,8 +271,9 @@ void Dataset::addProperties(const SparqlQuery::Results &results)
             if (idx == -1) {
                 qWarning() << "Can't find date substring in" << date;
             } else {
-                j->date = date.mid(idx, dateSubstring.matchedLength());
+                date = date.mid(idx, dateSubstring.matchedLength());
             }
+            j->dates.insert(date);
         } else if (!hasTitleResolved.isEmpty() && pred == hasTitleResolved) {
             j->title = i[object];
         } else if (pred == referenceResolved) {

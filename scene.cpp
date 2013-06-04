@@ -284,19 +284,13 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
 
     clearAdjacencyData();
 
-    for (auto &i : publications) {
-        for (auto &j : i.references) {
-            if (i.iri() == j) {
-                continue;
+    for (auto i = publicationInfo.begin(); i != publicationInfo.end(); i++) {
+        for (auto &j : publications.find(i.key())->references) {
+            if (i.key() != j && publications.contains(j)) {
+                addEdge(i.key(), j);
             }
-
-            auto k = publications.find(j);
-            if (k == publications.end()) {
-                continue;
-            }
-            addEdge(i, *k);
         }
-        insertNode(i.iri(), LayerId(i.date, subLevels[i.iri()]));
+        insertNode(i.key(), LayerId(i->date, subLevels[i.key()]));
     }
 
     removeOldNodes();
@@ -960,8 +954,8 @@ void Scene::arrangeToLayers()
 
     QSet<LayerId> usedLayers;
     QSet<Identifier> inStack;
-    for (auto &i : publications) {
-        LayerId layer(i.date, computeSubLevel(i.iri(), inStack));
+    for (auto i = publicationInfo.begin(); i != publicationInfo.end(); i++) {
+        LayerId layer(i->date, computeSubLevel(i.key(), inStack));
         if (!layers.contains(layer)) {
             layers.insert(layer, Layer());
         }
@@ -998,17 +992,17 @@ void Scene::clearAdjacencyData()
 void Scene::findEdgesInsideLayers()
 {
     inLayerEdges.clear();
-    for (auto &i : publications) {
-        for (auto &j : i.references) {
-            auto k = publications.find(j);
-            if (k == publications.end()) {
+    for (auto i = publicationInfo.begin(); i != publicationInfo.end(); i++) {
+        for (auto &j : publications.find(i.key())->references) {
+            auto k = publicationInfo.find(j);
+            if (k == publicationInfo.end()) {
                 continue;
             }
-            if (k->date != i.date) {
+            if (k->date != i->date) {
                 continue;
             }
-            if (i.iri() != j) {
-                inLayerEdges[i.iri()].insert(j);
+            if (i.key() != j) {
+                inLayerEdges[i.key()].insert(j);
             }
         }
     }
@@ -1016,51 +1010,59 @@ void Scene::findEdgesInsideLayers()
 
 void Scene::fixPublicationInfoAndDate()
 {
+    for (QMutableHashIterator<Identifier, PublicationInfo> i(publicationInfo);
+         i.hasNext();)
+    {
+        i.next();
+        if (!publications.contains(i.key())) {
+            i.remove();
+        }
+    }
+
     for (auto i = publications.begin(); i != publications.end(); i++) {
-        publicationInfo[i.key()].reverseDeg = 0;
+        auto &info = publicationInfo[i.key()];
+        info.reverseDeg = 0;
+
+        if (!i->dates.isEmpty()) {
+            auto dates(i->dates.toList());
+            qSort(dates);
+            info.date = dates[dates.size() / 2];
+        }
     }
 
     QSet<Identifier> noDate;
-    for (auto i = publications.begin(); i != publications.end(); i++) {
+    for (auto i = publicationInfo.begin(); i != publicationInfo.end(); i++) {
         bool changeDate = i->date.isEmpty();
         if (changeDate) {
-            qWarning() << "No date for publication" << i->iri();
+            qWarning() << "No date for publication" << i.key();
         }
-        for (auto &j : i->references) {
-            auto k = publications.find(j);
-            if (k != publications.end()) {
+        for (auto &j : publications.find(i.key())->references) {
+            auto k = publicationInfo.find(j);
+            if (k != publicationInfo.end()) {
                 if (changeDate) {
                     i->date = qMax(i->date, k->date);
                 }
-                publicationInfo[j].reverseDeg++;
+                k->reverseDeg++;
             }
         }
         if (changeDate && !i->date.isEmpty()) {
-            qWarning() << "Set date for" << i->iri() << "to" << i->date;
+            qWarning() << "Set date for" << i.key() << "to" << i->date;
         } else {
             noDate.insert(i.key());
         }
     }
 
-    for (auto i = publications.begin(); i != publications.end(); i++) {
-        for (auto &j : i->references) {
-            auto k = publications.find(j);
-            if (k != publications.end()) {
+    for (auto i = publicationInfo.begin(); i != publicationInfo.end(); i++) {
+        for (auto &j : publications.find(i.key())->references) {
+            auto k = publicationInfo.find(j);
+            if (k != publicationInfo.end()) {
                 if (noDate.contains(k.key()) && !i->date.isEmpty() &&
                         (i->date < k->date || k->date.isEmpty()))
                 {
                     k->date = i->date;
-                    qWarning() << "Set date for" << i->iri() << "to" << i->date;
+                    qWarning() << "Set date for" << i.key() << "to" << i->date;
                 }
             }
-        }
-    }
-
-    QMutableHashIterator<Identifier, PublicationInfo> i(publicationInfo);
-    while (i.hasNext()) {
-        i.next();
-        if (!publications.contains(i.key())) {
-            i.remove();
         }
     }
 }
@@ -1128,10 +1130,10 @@ VNodeRef Scene::insertNode(Identifier publication, const LayerId &layerId,
     }
 }
 
-void Scene::addEdge(const Publication &a, const Publication &b)
+void Scene::addEdge(const Identifier &a, const Identifier &b)
 {
-    LayerId aLayer(a.date, subLevels[a.iri()]);
-    LayerId bLayer(b.date, subLevels[b.iri()]);
+    LayerId aLayer(publicationInfo[a].date, subLevels[a]);
+    LayerId bLayer(publicationInfo[b].date, subLevels[b]);
 
     auto startIter = layers.lowerBound(qMin(aLayer, bLayer));
     auto endIter = layers.upperBound(qMax(aLayer, bLayer));
@@ -1141,18 +1143,18 @@ void Scene::addEdge(const Publication &a, const Publication &b)
     {
         VNodeRef found;
         if (i.key() == aLayer) {
-            found = insertNode(a.iri(), i.key());
+            found = insertNode(a, i.key());
         } else if (i.key() == bLayer) {
-            found = insertNode(b.iri(), i.key());
+            found = insertNode(b, i.key());
         } else {
-            found = insertNode(Identifier(), i.key(), a.iri(), b.iri());
+            found = insertNode(Identifier(), i.key(), a, b);
         }
 
         if (prev) {
             prev->neighbors[1].push_back(found);
-            prev->edgeColors[found] = publicationInfo[b.iri()].color;
+            prev->edgeColors[found] = publicationInfo[b].color;
             found->neighbors[0].push_back(prev);
-            found->edgeColors[prev] = publicationInfo[b.iri()].color;
+            found->edgeColors[prev] = publicationInfo[b].color;
         }
 
         prev = found;
