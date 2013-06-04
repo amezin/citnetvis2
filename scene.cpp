@@ -166,7 +166,7 @@ static void insertNodes(Scene::Layer &layer, bool l, bool twosided = false)
                     (left + right == bestLeft + bestRight &&
                      ((l && left < bestLeft) ||
                       (!l && right < bestRight) ||
-                      (((l && left == bestLeft) || (!l && right == bestRight))
+                      (left == bestLeft && right == bestRight
                        && qAbs(bestIdx - idx) >= qAbs(jIdx - idx)))))
             {
                 bestLeft = left;
