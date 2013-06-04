@@ -357,7 +357,7 @@ void Scene::setDataset(const Dataset &ds, bool barycenter, bool slow)
                 cur = intersections();
             }
             steps++;
-        } while (best - cur > cur / (twosided ? 500 : 50));
+        } while (best - cur > best / (twosided ? 500 : 50));
 
         if (twosided) break;
     }
