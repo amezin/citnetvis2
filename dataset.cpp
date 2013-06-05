@@ -35,6 +35,11 @@ uint qHash(const CacheInfo &info)
 typedef QHash<CacheInfo, Publication> PublicationCache;
 Q_GLOBAL_STATIC(PublicationCache, cache)
 
+Dataset::Dataset(QObject *parent)
+    : QObject(parent), queryInfo(QStringRef()), errorSet(false)
+{
+}
+
 Dataset::Dataset(const QUrl &endpointUrl, const QString &query,
                  const QString &hasDate, const QString &hasTitle,
                  const QString &citesPublicationReference,

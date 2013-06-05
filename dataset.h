@@ -14,11 +14,13 @@ class Dataset : public QObject
 {
     Q_OBJECT
 public:
-    explicit Dataset(const QUrl &endpointUrl, const QString &query,
-                     const QString &hasDate, const QString &hasTitle,
-                     const QString &citesPublicationReference,
-                     const QString &dateRegEx, bool loadRecursive,
-                     QObject *parent = 0);
+    Dataset(QObject *parent = 0);
+
+    Dataset(const QUrl &endpointUrl, const QString &query,
+            const QString &hasDate, const QString &hasTitle,
+            const QString &citesPublicationReference,
+            const QString &dateRegEx, bool loadRecursive,
+            QObject *parent = 0);
 
     bool isFinished() const
     {

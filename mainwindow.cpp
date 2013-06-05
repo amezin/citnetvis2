@@ -330,8 +330,11 @@ void MainWindow::selectedNodeChanged()
 
 void MainWindow::clear()
 {
-    dataset->clear();
+    delete dataset;
+    dataset = new Dataset(this);
     scene->setDataset(*dataset);
+    clearAction->setEnabled(false);
+    stopAction->setDisabled(true);
 }
 
 void MainWindow::exportImage()
